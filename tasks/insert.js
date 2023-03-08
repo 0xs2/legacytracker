@@ -4,8 +4,12 @@ const moment = require('moment');
 
 require('dotenv').config({path: '../.env'});
 
-serverData(knex)
-
+Promise.all([
+    serverData(knex)
+      ]).then(() => {
+      process.exit(0);
+})
+    
 // handle the main server table
 
 

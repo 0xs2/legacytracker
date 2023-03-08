@@ -21,13 +21,19 @@
 </head>
 <%- include('../partials/header') %>
 
-<h2>SLT</h2>
-<p>Small Legacy Server tracker</p>
+<div class="d-flex justify-content-between">
+<div class="item">
+  <h2><a href="./">SLT</a></h2>
+  <p>Small Legacy Server List and Tracker</p>
+</div>
+<div class="item">
+  <span type="button" id="toggle" class="btn btn-outline-primary">Show Chart</span>
+</div>
+</div>
 
-
-<div class="card bg-dark">
+<div class="card bg-dark chart">
     <div class="card-header">Graph of the Servers</div>
-    <div class="card-body h-100 d-flex align-items-center justify-content-center serv"> <div class="serv" style="height: 300px; width:100%;"><canvas id="myChart"></canvas></div></div>
+    <div class="card-body h-100 d-flex align-items-center justify-content-center"> <div class="serv"><canvas id="myChart"></canvas></div></div>
 </div>
 
 <br>
@@ -35,7 +41,7 @@
 <table class="table table-bordered">
 <thead>
 <tr>
-<th class="text-center text-bold"><i class="fa fa-file-image-o" aria-hidden="true"></i></th>
+<th class="text-center text-bold"></th>
 <th>Server</th>
 <th>IP</th>
 <th>Description</th>
@@ -49,8 +55,8 @@
 <tr>
 <td class="text-center"><img src="data:image/png;base64,<%= element.icon %>" alt="<%= element.name %>" width="50px"></td>
 <td><a href="server/<%= element.id %>"><%= element.name %></a></td>
-<td><%= element.ip %></td>
-<td><%= element.desc %></td>
+<td><%= element.ip %> &ensp; <span class="fa fa-clipboard copybtn text-success" data-clipboard-text="<%= element.ip %>"></span></td>
+<td style="max-width: 400px;"><%= element.desc %></td>
 <td><%= element.online %></td>
 <td><%= element.peak %></td>
 </tr>
@@ -60,76 +66,5 @@
 </div>
 
 <script src="assets/index.js"></script>
-<script>
-
-$.ajax({
-  url:"api/serversHistory",
-    method: "GET",
-    success: function(data){
-
-    if(data.success != true) {
-    $(".serv").text("Error fetching server graph");
-    }
-  else {
-
-    console.log(data);
-
-    let builder = [];
-    let t = [];
-
-    data.servers.forEach((element, key) => {
-       builder.push({
-        label: element.name,
-        data: element.cnt,
-        borderWidth: 1,
-        fill: false,
-        borderColor: colorArray[key+1]
-      }) 
-    });
-
-
-      console.log(builder);
-
-
-
-    new Chart("myChart", {
-        type: "line",
-        data: {
-        labels: data.timestamps,
-        datasets: builder,
-        },
-        options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        legend: {display: true},
-        scales: {
-        xAxes: [{
-        gridLines: {
-        display:false
-        },
-        ticks: {
-        display: false
-        }
-        }],
-
-        yAxes: [{
-        gridLines: {
-        display:true
-        },
-        ticks: {
-        display: true,
-        beginAtZero: true
-
-        }
-        }]
-        }
-        }
-        });
-
-
-    }
-}
-});
-</script>
+<script>getGlobalGraph()</script>
 <%- include('../partials/footer') %>
-

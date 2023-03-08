@@ -14,8 +14,17 @@ body {
     margin: auto;
 }
 
+.serv {
+    width: 100%;
+    height: 300px;
+}
+
 .l {
     padding: 50px;
+}
+
+.chart {
+    display: none;
 }
 
 a {
@@ -221,11 +230,11 @@ footer {
     padding: 50px;
 }
 
-.copy {
+.copybtn {
     color: #00995e;
 }
 
-.copy:hover {
+.copybtn:hover {
     cursor: pointer;
     color: #0d573a;
 }
@@ -238,8 +247,8 @@ footer {
 
 @media only screen and (max-width: 768px) {
     .c {
+        margin-top: 30px;
         padding-left: 10px;
         padding-right: 10px;
-        margin: auto;
     }
 }

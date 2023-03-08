@@ -1,43 +1,66 @@
-module.exports = function (app,knex) {
+module.exports = function (app,knex,sortArray) {
 
     app.get("/", async (req,res) => {
-        res.render("index", {data: await getServerInformation(knex)});
+        res.render("index", {data: await getServerInformation(knex,sortArray)});
     });
 
-
-    app.get("/server/:id", async (req,res) => {
-        res.render("server", {data: await getServerInformationByID(req.params.id, knex)});
+    app.get("/server/:id([0-9])", async (req,res) => {
+        let data = await getServerInformationByID(req.params.id, knex);
+        if(!data) {
+            res.status(404).send("not found");
+        }
+        else {
+            res.render("server", {data: data});
+        }
     });
 
-    app.get("/api/serverHistory", async (req,res) => {
+    app.get("/api/getServerHistory", async (req,res) => {
         res.json(await getServerHistory(req.query['id'], knex));
     });
 
-    app.get("/api/serversHistory", async (req,res) => {
-        res.json(await getServersHistory(knex));
+    app.get("/api/getGlobalHistory", async (req,res) => {
+        res.json(await getGlobalHistory(knex));
     });
 
+    app.all('*', (req, res) => {
+        res.status(404).send("not found");
+      });
 }
 
 
 async function getServerInformationByID(id, knex) {
     let server = await knex('servers').where("id", id).select();
-    return await getData(server[0], knex);
+
+    if(server.length != 1) {
+        return false;
+    }
+    else {
+        return await getData(server[0], knex);
+    }
 
 }
 
-async function getServerInformation(knex) {
+async function getServerInformation(knex,sortArray) {
     let servers = await knex('servers').select();
     let data = [];
     for (const el of servers) {
         data.push(await getData(el,knex));
 
     }
-    return data;
+
+    return sortArray(data, {
+        by: 'online',
+        order: 'desc'
+    });
 }
 
 async function getServerHistory(q, knex) { 
     let data = await knex('server_player_count').where("server_id", q).select(["onlinePlayers","date"]).limit(25).orderBy("date", "desc");
+
+    if(data.length == 0) {
+        return {success: false};
+    }
+    else {
     let timestamps = [];
     let count = [];
     
@@ -45,8 +68,8 @@ async function getServerHistory(q, knex) {
         timestamps.push(el.date);
         count.push(el.onlinePlayers);
     }
-    
     return {timestamps: timestamps.reverse(), cnt: count.reverse(), success: true};
+    }
 }
 
 async function getData(el, knex) {
@@ -73,7 +96,7 @@ async function getData(el, knex) {
     };
 }
 
-async function getServersHistory(knex,moment) { 
+async function getGlobalHistory(knex) { 
     let final = [];
     let data = await knex('servers').select();
     let timestamps = [];

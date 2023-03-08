@@ -2,7 +2,11 @@ const knex = require('../functions/knex');
 
 require('dotenv').config({path: '../.env'});
 
-createTables(knex);
+Promise.all([
+    createTables(knex)
+      ]).then(() => {
+      process.exit(0);
+})
 
 async function createTables(knex) {
     try {

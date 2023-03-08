@@ -2,8 +2,8 @@ const express = require("express");
 const compression = require("compression");
 const helmet = require("helmet");
 const app = express({ strict: true });
-const moment = require('moment');
 const knex = require('./functions/knex');
+const sortArray = require('sort-array');
 
 require('dotenv').config({path: './.env'});
 
@@ -22,6 +22,6 @@ app.use(helmet.originAgentCluster());
 app.use(helmet.referrerPolicy());
 app.use(helmet.xssFilter());
 
-require('./functions/web')(app,knex,moment);
+require('./functions/web')(app,knex,sortArray);
 
 app.listen(process.env.PORT);
