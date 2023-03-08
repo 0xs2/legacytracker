@@ -1,17 +1,16 @@
 const knex = require('../functions/knex');
 const axios = require('axios');
 const moment = require('moment');
+var cron = require('node-cron');
 
 require('dotenv').config({path: '../.env'});
 
-Promise.all([
+let promiseExecution = async (knex) => {
     serverData(knex)
-      ]).then(() => {
-      process.exit(0);
-})
-    
-// handle the main server table
-
+};
+cron.schedule('* * * * *', () => {
+    promiseExecution(knex);
+});
 
 // main server data function
 async function serverData(knex) {

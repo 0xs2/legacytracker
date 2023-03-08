@@ -4,7 +4,7 @@ module.exports = function (app,knex,sortArray) {
         res.render("index", {data: await getServerInformation(knex,sortArray)});
     });
 
-    app.get("/server/:id([0-9])", async (req,res) => {
+    app.get("/server/:id", async (req,res) => {
         let data = await getServerInformationByID(req.params.id, knex);
         if(!data) {
             res.status(404).send("not found");
