@@ -1,2 +1,7 @@
 # small-legacy-tracker
-Tiny Legacy Tracker in NodeJS
+
+Small Legacy Tracker in NodeJS, nice web UI with Graphs and hisoric data
+
+Credit:
+https://tracker.johnymuffin.com
+https://servers.api.legacyminecraft.com
