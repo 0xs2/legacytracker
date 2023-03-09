@@ -59,6 +59,7 @@
 
 <% data.forEach(element => { %>
 <tr>
+<td><img src="data:image/png;base64,<%= element.icon %>" alt="<%= element.name %>" width="50px"></td>
 <td><a href="server/<%= element.id %>"><%= element.name %></a></td>
 <td><%= element.ip %>&ensp;<span class="fa fa-clipboard copybtn text-success" data-clipboard-text="<%= element.ip %>"></span></td>
 <td><%= element.version %></td>
