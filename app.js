@@ -2,6 +2,7 @@ const express = require("express");
 const compression = require("compression");
 const helmet = require("helmet");
 const app = express({ strict: true });
+require('./functions/main');
 const knex = require('./functions/knex');
 const sortArray = require('sort-array');
 
