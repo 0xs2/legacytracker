@@ -31,7 +31,7 @@ async function insertPlayer(knex, data) {
     if(data.players.length != 0) {
         for (const player of data.players) { 
 
-        let p = await knex('server_players').where('player', player.username).select('player');
+        let p = await knex('server_players').where('player', player.username).where('uuid', data.uuid).select('player');
 
         if(p.length < 1) {
             let id = await getServerID(knex, data.uuid);
