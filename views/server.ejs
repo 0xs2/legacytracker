@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="language" content="English">
 <meta name="description" content="View <%= data.name %>'s information">
-<meta name="title" content="SLT | Server <%= data.name %>">
+<meta name="title" content="SLT | <%= data.name %>">
 <meta name="theme-color" content="#131313">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.0/css/font-awesome.min.css" />
@@ -17,13 +17,13 @@
 <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.10/dist/clipboard.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
 <%- include('../partials/head') %>
-<title>SLT | Server <%= data.name %></title>
+<title>SLT | <%= data.name %></title>
 </head>
 <%- include('../partials/header') %>
 
 
-<h2><a href="../">SLT</a> | Server <strong><%= data.name %></strong></h2>
-<p><strong><%= data.name %></strong>'s information </p>
+<h2><a href="../">SLT</a> | <strong class="text-<%= data.id %>"><%= data.name %></strong></h2>
+<p><strong class="text-<%= data.id %>"><%= data.name %></strong>'s information </p>
 
 <div class="row">
     <div class="col-lg-4">
@@ -32,7 +32,7 @@
             <div class="card-body">
                 <div class="card-title">
                     <label class="col-6 col-md-6" style="font-weight: bold;">IP</label>
-                    <%= data.nip %>&ensp;<span class="fa fa-clipboard copybtn text-success" data-clipboard-text="<%= data.nip %>"></span>
+                    <%= data.nip %>&ensp;<span class="cb-<%= data.id %> fa fa-clipboard copybtn" data-clipboard-text="<%= data.nip %>"></span>
                 </div>
                     <div class="card-title">
                         <label class="col-6 col-md-6" style="font-weight: bold;">Port</label>
@@ -92,7 +92,7 @@
                 <img src="data:image/png;base64,<%= data.icon %>" alt="<%= data.name %>" style="float: left" width="100px">
             </div>
             <div class="item">
-                    <h2 class="text-center"><strong><%= data.ip %> </strong></h2>
+                    <h2 class="text-center"><strong class="text-<%= data.id %>"><%= data.ip %> </strong></h2>
                 </div>                                      
             </div>
             <div class="card-title">
@@ -103,7 +103,7 @@
     <br>
 
 <div class="card bg-dark">
-    <div class="card-header">Graph of the Server</div>
+    <div class="card-header">Players Overtime</div>
     <div class="card-body h-100 d-flex align-items-center justify-content-center"><div class="serv"><canvas id="myChart"></canvas></div></canvas></div>
 </div>
 

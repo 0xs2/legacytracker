@@ -76,6 +76,10 @@ function getGlobalGraph() {
       });
 
       data.servers.forEach((element, key) => {
+        $(`td.cl-${key+1}`).css({"background": colorArray[key+1] + "11", "color": colorArray[key+1]});
+        $(`td.cl-${key+1} a`).css({"color": colorArray[key+1]});
+        $(`.cb-${key+1}`).css({"color": colorArray[key+1] + "88"});
+
          builder.push({
           label: element.name,
           data: element.cnt,
@@ -107,10 +111,11 @@ function getGlobalGraph() {
 }
 
   function getServerGraph() {
+    let id = $("#id").val()
     $.ajax({
       url: "../api/getServerHistory",
       data: {
-        id: $("#id").val()
+        id: id
       },
       method: "GET",
       success: function (data) {
@@ -124,6 +129,9 @@ function getGlobalGraph() {
           data.timestamps.forEach(element => {
             t.push(moment.unix(element).format('MM/DD/YYYY (hh:mm:ss a)'));
           });
+
+          $(`.text-${id}`).css({"color": colorArray[id]});
+          $(`.cb-${id}`).css({"color": colorArray[id] + "88"});
 
           new Chart("myChart", {
             type: "line",

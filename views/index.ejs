@@ -58,15 +58,15 @@
 <tbody>
 
 <% data.forEach(element => { %>
-<tr>
-<td class="text-center"><img src="data:image/png;base64,<%= element.icon %>" alt="<%= element.name %>" width="50px"></td>
-<td><a href="server/<%= element.id %>"><%= element.name %></a></td>
-<td><%= element.ip %>&ensp;<span class="fa fa-clipboard copybtn text-success" data-clipboard-text="<%= element.ip %>"></span></td>
-<td><%= element.version %></td>
-<td style="max-width: 400px;"><%= element.desc %></td>
-<td><%= element.online %></td>
-<td><%= element.peak %></td>
-<td><%= element.stored %></td>
+<tr class="item-<%= element.id %>">
+<td class="cl-<%= element.id %>"><img src="data:image/png;base64,<%= element.icon %>" alt="<%= element.name %>" class="mx-auto d-block" width="75%"></td>
+<td class="cl-<%= element.id %>"><a href="server/<%= element.id %>"><%= element.name %></a></td>
+<td class="cl-<%= element.id %>"><%= element.ip %>&ensp;<span class="cb-<%= element.id %> fa fa-clipboard copybtn" data-clipboard-text="<%= element.ip %>"></span></td>
+<td class="cl-<%= element.id %>"><%= element.version %></td>
+<td class="cl-<%= element.id %>" style="max-width: 400px;"><%= element.desc %></td>
+<td class="cl-<%= element.id %>"><%= element.online %></td>
+<td class="cl-<%= element.id %>"><%= element.peak %></td>
+<td class="cl-<%= element.id %>"><%= element.stored %></td>
 </tr>
 <% }) %>
 </tbody>
