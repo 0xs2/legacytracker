@@ -11,7 +11,7 @@ mode: 'index'
 },
 responsive: true,
 maintainAspectRatio: false,
-legend: {display: true},
+legend: {display: false},
 elements: {
 point: {
 hoverRadius: 4
@@ -74,6 +74,8 @@ function getGlobalGraph() {
           backgroundColor: colorArray[key+1] + "22",
         })
       });
+      
+      options.legend.display = true;
 
       new Chart("myChart", {
           type: "line",
