@@ -31,12 +31,16 @@
 </div>
 </div>
 
-<div class="card bg-dark chart">
+<div class="stats"></div>
+
+<div class="chart">
+<div class="card bg-dark">
     <div class="card-header">Players Overtime across servers</div>
     <div class="card-body h-100 d-flex align-items-center justify-content-center"> <div class="serv"><canvas id="myChart"></canvas></div></div>
 </div>
-
 <br>
+</div>
+
 <div class="table-responsive-lg">
 <table class="table table-bordered">
 <thead>
@@ -55,7 +59,7 @@
 <tr>
 <td class="text-center"><img src="data:image/png;base64,<%= element.icon %>" alt="<%= element.name %>" width="50px"></td>
 <td><a href="server/<%= element.id %>"><%= element.name %></a></td>
-<td><%= element.ip %> &ensp; <span class="fa fa-clipboard copybtn text-success" data-clipboard-text="<%= element.ip %>"></span></td>
+<td><%= element.ip %>&ensp;<span class="fa fa-clipboard copybtn text-success" data-clipboard-text="<%= element.ip %>"></span></td>
 <td style="max-width: 400px;"><%= element.desc %></td>
 <td><%= element.online %></td>
 <td><%= element.peak %></td>
@@ -67,4 +71,5 @@
 
 <script src="assets/index.js"></script>
 <script>getGlobalGraph()</script>
+<script>getStats()</script>
 <%- include('../partials/footer') %>

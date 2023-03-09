@@ -22,6 +22,10 @@ module.exports = function (app,knex,sortArray) {
         res.json(await getGlobalHistory(knex));
     });
 
+    app.get("/api/getStats", async (req,res) => {
+        res.json(await getStats(knex));
+    });
+
     app.all('*', (req, res) => {
         res.status(404).send("not found");
       });
@@ -45,13 +49,35 @@ async function getServerInformation(knex,sortArray) {
     let data = [];
     for (const el of servers) {
         data.push(await getData(el,knex));
-
     }
 
     return sortArray(data, {
         by: 'online',
         order: 'desc'
     });
+}
+
+async function getStats(knex) {
+    let p3 = await knex("server_players").count('player', {as: 'count'}).limit(1); 
+    let p2 = await getOnlinePlayers(knex);
+    let p1 = await knex('server_player_count').select(["date"]).orderBy('date', 'desc').limit(1);
+
+    return {
+        totalUsers: p3[0].count,
+        totalUsersOnline: p2,
+        lastPinged: p1[0].date,
+        success: true
+    };
+
+}
+
+async function getOnlinePlayers(knex) {
+    let data = await knex('server_player_count').select(["onlinePlayers"]).orderBy('date', 'desc').limit(10);
+    builder = [];
+    for(const el of data) {
+        builder.push(el.onlinePlayers);
+    }
+    return builder.reduce((a, b) => a + b, 0)
 }
 
 async function getServerHistory(q, knex) { 
