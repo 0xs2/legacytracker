@@ -59,10 +59,12 @@ async function getServerInformation(knex,sortArray) {
 
 async function getStats(knex) {
     let p3 = await knex("server_players").count('player', {as: 'count'}).limit(1); 
+    let p = await knex("servers").count('id', {as: 'count'}).limit(1); 
     let p2 = await getOnlinePlayers(knex);
     let p1 = await knex('server_player_count').select(["date"]).orderBy('date', 'desc').limit(1);
 
     return {
+        totalServers: p[0].count,
         totalUsers: p3[0].count,
         totalUsersOnline: p2,
         lastPinged: p1[0].date,

@@ -52,7 +52,7 @@ function getStats() {
       $(".stats").html(`<p class="text-danger">Error fetching statistics</p>`);
       }
       else {
-      $(".stats").html(`<p>Online Users: <strong class="text-bolder text-success">${data.totalUsersOnline}</strong>, Unique Users: <strong class="text-bolder text-success">${data.totalUsers}</strong>, Last Pinged: <strong class="text-bolder text-success">${moment.unix(data.lastPinged).format('MM/DD/YYYY (hh:mm:ss a)')}</strong></p>`);
+      $(".stats").html(`<p>Servers: <strong class="text-bolder text-success">${data.totalServers}</strong>, Online Users: <strong class="text-bolder text-success">${data.totalUsersOnline}</strong>, Unique Users: <strong class="text-bolder text-success">${data.totalUsers}</strong></p>`);
       }
     }
 });
