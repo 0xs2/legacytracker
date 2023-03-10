@@ -90,7 +90,7 @@ async function getOnlinePlayers(knex) {
 }
 
 async function getServerHistory(q, knex) { 
-    let data = await knex('server_player_count').where("server_id", q).select(["onlinePlayers","date"]).limit(100).orderBy("date", "desc");
+    let data = await knex('server_player_count').where("server_id", q).select(["onlinePlayers","date"]).limit(process.env.PLAYER_LIMIT).orderBy("date", "desc");
 
     if(data.length == 0) {
         return {success: false};
@@ -188,7 +188,7 @@ async function getGlobalHistory(knex) {
     let timestamps = [];
 
     for(const el of data) {
-        let data2 = await knex('server_player_count').where("uuid", el.uuid).select(["onlinePlayers","date"]).limit(100).orderBy("date", "desc");
+        let data2 = await knex('server_player_count').where("uuid", el.uuid).select(["onlinePlayers","date"]).limit(process.env.PLAYER_LIMIT).orderBy("date", "desc");
 
         let count = [];
 
@@ -206,7 +206,7 @@ async function getGlobalHistory(knex) {
     );
 
     }
-    return {servers: final, timestamps: timestamps.slice(0, 100).reverse(), success: true};
+    return {servers: final, timestamps: timestamps.slice(0, process.env.PLAYER_LIMIT).reverse(), success: true};
 }
 
 
