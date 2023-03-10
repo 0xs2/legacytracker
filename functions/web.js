@@ -30,6 +30,33 @@ module.exports = function (app,knex,sortArray,m) {
         res.json(await m.getPlayer(req.query['player'],knex));
     });
 
+    app.get("/api/getServerPlayers", async (req,res) => {
+        if(!req.query['key'] || req.query['key'] != process.env.API_KEY) {
+            res.json({success: false, message: "invalid/no api key"});
+        }
+        else {
+            res.json(await m.getServerPlayers(knex,req.query['id']));
+        }
+    });
+
+    app.get("/api/getServer", async (req,res) => {
+        if(!req.query['key'] || req.query['key'] != process.env.API_KEY) {
+            res.json({success: false, message: "invalid/no api key"});
+        }
+        else {
+            res.json(await m.getServerInformationByID(req.query['id'], knex));
+        }
+    });
+
+    app.get("/api/getServers", async (req,res) => {
+        if(!req.query['key'] || req.query['key'] != process.env.API_KEY) {
+            res.json({success: false, message: "invalid/no api key"});
+        }
+        else {
+            res.json({servers: await m.getServers(knex), success: true});
+        }
+    });
+
     app.all('*', (req, res) => {
         res.status(404).send("not found");
       });

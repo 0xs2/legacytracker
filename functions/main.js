@@ -10,7 +10,45 @@ async function getServerInformationByID(id, knex) {
     else {
         return await getData(server[0], knex);
     }
+}
 
+
+async function getServers(knex) {
+    let servers = await knex('servers').select();
+
+    let builder = [];
+
+    for(let el of servers) {
+        let data =  await getData(el, knex);
+        builder.push(data);
+    }
+
+    return builder;
+}
+
+async function getServerPlayers(knex, q) {
+    let data = await knex('server_players').where("server_id", q).select(["player","date", "lastUpdated"]);
+    if(data.length == 0) {
+        return {success: false};
+    }
+    else {
+
+        let server = await getServerNameID(knex, q);
+        let server_uuid = await getServerUUID(knex, q);
+
+        return {
+            server: server,
+            server_uuid: server_uuid,
+            sucesss: true, 
+            players: data
+        };
+    }
+}
+
+async function updatePlayerDate(knex, server_id, player) {
+    await knex('server_players').where({"server_id": server_id, "player": player}).update({
+        lastUpdated: moment().format('X')
+    });
 }
 
 async function getServerInformation(knex,sortArray) {
@@ -89,7 +127,8 @@ async function getData(el, knex) {
         peak: p[0].onlinePlayers,
         online: p2[0].onlinePlayers,
         stored: p3[0].count,
-        onlinemode: Boolean(el.onlineMode)
+        onlinemode: Boolean(el.onlineMode),
+        updated: el.lastUpdated
     };
 }
 
@@ -218,6 +257,7 @@ async function createTables(knex) {
                     t.string('uuid', 50);
                     t.string('player', 50);
                     t.integer('date', 20);
+                    t.integer('lastUpdated', 20);
                 });
             }
         });
@@ -258,19 +298,23 @@ async function serverTable(knex) {
 
 async function insertPlayer(knex, data) {
     if(data.players.length != 0) {
+        let id = await getServerID(knex, data.uuid);
+
         for (const player of data.players) { 
 
-        let p = await knex('server_players').where('player', player.username).where('uuid', data.uuid).select('player');
+        let p = await knex('server_players').where({'player': player.username, 'uuid': data.uuid}).select('player');
 
         if(p.length < 1) {
-            let id = await getServerID(knex, data.uuid);
-
             await knex('server_players').insert({
                 server_id: id,
                 uuid: data.uuid,
                 player: player.username,
-                date: moment().format('X')
+                date: moment().format('X'),
+                lastUpdated: moment().format('X')
             });
+        }
+        else {
+            updatePlayerDate(knex, id, player.username)
         }
     }
 }
@@ -337,6 +381,16 @@ async function getServerName(knex, uuid) {
     return data[0].serverName; 
 }
 
+async function getServerNameID(knex, id) {
+    let data = await knex("servers").where("id", id).select("serverName");
+    return data[0].serverName; 
+}
+
+async function getServerUUID(knex, id) {
+    let data = await knex("servers").where("id", id).select("uuid");
+    return data[0].uuid; 
+}
+
 async function updateServerTable(knex) {
     let data = await request(process.env.SERVERS_URL);
 
@@ -379,6 +433,8 @@ module.exports = {
     serverData,
     request,
     updateServerTable,
+    getServerPlayers,
     getPlayer,
+    getServers,
     serverTable
 };
