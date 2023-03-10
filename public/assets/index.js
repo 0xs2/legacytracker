@@ -196,3 +196,48 @@ function getGlobalGraph() {
     setTooltip(e.trigger, 'Copied to Clipboard');
     hideTooltip(e.trigger);
   });
+
+  $("#searchForm").on("submit", function(event){
+    event.preventDefault();
+    var query = $("#search").val();
+    $.ajax({
+      url:"api/getPlayer",
+        data: {player: query},
+        method: "GET",
+        success: function(data){
+    
+        if(!data.success) {
+        Swal.fire({
+          title: "Uh oh!",
+          icon: "error",
+          text: "This user was not found in any servers.",
+          allowOutsideClick: false,
+          allowEscapeKey: false
+          })
+        }
+      else {
+        let builder = [];
+        data.servers.forEach(element => {
+            builder.push(element.server);
+        });
+
+        if(data.uuid != null) {
+          img = `https://crafatar.com/avatars/${data.uuid}?size=100&overlay`;
+        }
+        else {
+          img = `https://crafatar.com/avatars/8667ba71-b85a-4004-af54-457a9734eed7?size=100`;
+        }
+      
+        Swal.fire({
+          title: data.player,
+          imageUrl: img,
+          imageHeight: 100,
+          imageAlt: data.player,
+          html: `Is a Mojang Account: <strong>${data.isValid}</strong><br>Servers: <strong>${builder.join("</strong><strong>, ")}</strong>`,
+          allowOutsideClick: false,
+          allowEscapeKey: false
+          }) 
+      }
+    }
+    });
+    });

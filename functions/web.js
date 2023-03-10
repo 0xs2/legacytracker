@@ -1,11 +1,11 @@
-module.exports = function (app,knex,sortArray) {
+module.exports = function (app,knex,sortArray,m) {
 
     app.get("/", async (req,res) => {
-        res.render("index", {data: await getServerInformation(knex,sortArray)});
+        res.render("index", {data: await m.getServerInformation(knex,sortArray)});
     });
 
     app.get("/server/:id", async (req,res) => {
-        let data = await getServerInformationByID(req.params.id, knex);
+        let data = await m.getServerInformationByID(req.params.id, knex);
         if(!data) {
             res.status(404).send("not found");
         }
@@ -15,15 +15,19 @@ module.exports = function (app,knex,sortArray) {
     });
 
     app.get("/api/getServerHistory", async (req,res) => {
-        res.json(await getServerHistory(req.query['id'], knex));
+        res.json(await m.getServerHistory(req.query['id'], knex));
     });
 
     app.get("/api/getGlobalHistory", async (req,res) => {
-        res.json(await getGlobalHistory(knex));
+        res.json(await m.getGlobalHistory(knex));
     });
 
     app.get("/api/getStats", async (req,res) => {
-        res.json(await getStats(knex));
+        res.json(await m.getStats(knex));
+    });
+
+    app.get("/api/getPlayer", async (req,res) => {
+        res.json(await m.getPlayer(req.query['player'],knex));
     });
 
     app.all('*', (req, res) => {
@@ -32,121 +36,3 @@ module.exports = function (app,knex,sortArray) {
 }
 
 
-async function getServerInformationByID(id, knex) {
-    let server = await knex('servers').where("id", id).select();
-
-    if(server.length != 1) {
-        return false;
-    }
-    else {
-        return await getData(server[0], knex);
-    }
-
-}
-
-async function getServerInformation(knex,sortArray) {
-    let servers = await knex('servers').select();
-    let data = [];
-    for (const el of servers) {
-        data.push(await getData(el,knex));
-    }
-
-    return sortArray(data, {
-        by: 'online',
-        order: 'desc'
-    });
-}
-
-async function getStats(knex) {
-    let p3 = await knex("server_players").count('player', {as: 'count'}).limit(1); 
-    let p = await knex("servers").count('id', {as: 'count'}).limit(1); 
-    let p2 = await getOnlinePlayers(knex);
-    let p1 = await knex('server_player_count').select(["date"]).orderBy('date', 'desc').limit(1);
-
-    return {
-        totalServers: p[0].count,
-        totalUsers: p3[0].count,
-        totalUsersOnline: p2,
-        lastPinged: p1[0].date,
-        success: true
-    };
-
-}
-
-async function getOnlinePlayers(knex) {
-    let data = await knex('server_player_count').select(["onlinePlayers"]).orderBy('date', 'desc').limit(10);
-    builder = [];
-    for(const el of data) {
-        builder.push(el.onlinePlayers);
-    }
-    return builder.reduce((a, b) => a + b, 0)
-}
-
-async function getServerHistory(q, knex) { 
-    let data = await knex('server_player_count').where("server_id", q).select(["onlinePlayers","date"]).limit(100).orderBy("date", "desc");
-
-    if(data.length == 0) {
-        return {success: false};
-    }
-    else {
-    let timestamps = [];
-    let count = [];
-    
-    for (const el of data) {
-        timestamps.push(el.date);
-        count.push(el.onlinePlayers);
-    }
-    return {timestamps: timestamps.reverse(), cnt: count.reverse(), success: true};
-    }
-}
-
-async function getData(el, knex) {
-    let p = await knex("server_player_count").where("uuid", el.uuid).select("onlinePlayers").orderBy("onlinePlayers", "desc").limit(1); 
-    let p2 = await knex("server_player_count").where("uuid", el.uuid).select("onlinePlayers").orderBy("date", "desc").limit(1); 
-    let p3 = await knex("server_players").where("uuid", el.uuid).count('player', {as: 'count'}).limit(1); 
-
-    return {
-        id: el.id,
-        icon: el.serverIcon,
-        desc: el.serverDescription,
-        version: el.serverVersion,
-        port: el.serverPort,
-        name: el.serverName,
-        ip: el.serverIp,
-        nip: el.numericalIP,
-        auth: Boolean(el.authenticated),
-        whitelisted: Boolean(el.whitelisted),
-        max: el.maxPlayers,
-        peak: p[0].onlinePlayers,
-        online: p2[0].onlinePlayers,
-        stored: p3[0].count,
-        onlinemode: Boolean(el.onlineMode)
-    };
-}
-
-async function getGlobalHistory(knex) { 
-    let final = [];
-    let data = await knex('servers').select();
-    let timestamps = [];
-
-    for(const el of data) {
-        let data2 = await knex('server_player_count').where("uuid", el.uuid).select(["onlinePlayers","date"]).limit(100).orderBy("date", "desc");
-
-        let count = [];
-
-
-        for (const el2 of data2) {
-            count.push(el2.onlinePlayers);
-            timestamps.push(el2.date);
-
-        }
-
-        final.push({
-            "name": el.serverName, 
-            "cnt": count.reverse()
-        }
-    );
-
-    }
-    return {servers: final, timestamps: timestamps.slice(0, 100).reverse(), success: true};
-}

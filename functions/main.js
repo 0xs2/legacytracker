@@ -93,6 +93,56 @@ async function getData(el, knex) {
     };
 }
 
+async function getPlayer(player, knex) {
+    let user = await knex('server_players').whereLike('player', `%${player}%`).select();
+
+    if(user.length < 1) {
+        return {"success": false, "message": "no data available"};
+    }
+    else {
+        let builder = [];
+
+        for(const el of user) {
+            let server = await getServerName(knex, el.uuid);
+
+            builder.push({
+            server: server,
+            server_uuid: el.uuid,
+            date: el.date
+            });
+        }
+
+        let p = await checkPlayer(player);
+        return {
+            success: true,
+            uuid: p.uuid,
+            player: p.player,
+            isValid: p.isValid,
+            servers: builder,
+        }
+    }
+}
+
+
+async function checkPlayer(player) {
+    let data = await request(process.env.MOJANG_URL + player);
+
+    if(!data) {
+        return {
+            isValid: false,
+            uuid: null,
+            player: player
+        }
+    }
+    else {
+        return {
+            isValid: true,
+            uuid: data.uuid,
+            player: data.username
+        }
+    }
+}
+
 async function getGlobalHistory(knex) { 
     let final = [];
     let data = await knex('servers').select();
@@ -260,21 +310,31 @@ async function insertCount(knex, data) {
 
 async function request(url) {
     let data = '';
+    try {
     await axios.get(url)
         .then(async function (response) {
 
             if (response.status != 200) {
-                console.log("error")
+                data = false;
             } else {
                 data = response.data;
             }
         });
+    }
+    catch(e) {
+        data = false;
+    }
     return data
 }
 
 async function getServerID(knex, uuid) {
     let data = await knex("servers").where("uuid", uuid).select("id");
     return data[0].id; 
+}
+
+async function getServerName(knex, uuid) {
+    let data = await knex("servers").where("uuid", uuid).select("serverName");
+    return data[0].serverName; 
 }
 
 async function updateServerTable(knex) {
@@ -319,5 +379,6 @@ module.exports = {
     serverData,
     request,
     updateServerTable,
+    getPlayer,
     serverTable
 };

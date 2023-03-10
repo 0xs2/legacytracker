@@ -2,10 +2,9 @@ const express = require("express");
 const compression = require("compression");
 const helmet = require("helmet");
 const app = express({ strict: true });
-require('./functions/main');
 const knex = require('./functions/knex');
 const sortArray = require('sort-array');
-
+const m = require('./functions/main');
 require('dotenv').config({path: './.env'});
 
 app.set("view engine", "ejs")
@@ -23,6 +22,6 @@ app.use(helmet.originAgentCluster());
 app.use(helmet.referrerPolicy());
 app.use(helmet.xssFilter());
 
-require('./functions/web')(app,knex,sortArray);
+require('./functions/web')(app,knex,sortArray,m);
 
 app.listen(process.env.PORT);

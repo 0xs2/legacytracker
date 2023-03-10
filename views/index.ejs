@@ -16,6 +16,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.10/dist/clipboard.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@5/dark.css" />
 <%- include('../partials/head') %>
 <title>SLT</title>
 </head>
@@ -25,6 +27,13 @@
 <div class="item">
   <h2><a href="./">SLT</a></h2>
   <p>Small Legacy Server List and Tracker</p>
+</div>
+<div class="item">
+  <form class="form-horizontal" method="" id="searchForm">
+    <div class="input-group-prepend">
+      <input type="text" id="search" class="form-control bg-dark" placeholder="Search Player" required>
+  </div>
+    </form>
 </div>
 <div class="item">
   <span type="button" id="toggle" class="btn btn-outline-primary">Show Chart</span>
@@ -59,7 +68,7 @@
 
 <% data.forEach(element => { %>
 <tr class="item-<%= element.id %>">
-<td class="cl-<%= element.id %>"><img src="data:image/png;base64,<%= element.icon %>" alt="<%= element.name %>" class="mx-auto d-block" width="75%"></td>
+<td class="cl-<%= element.id %>"><img src="data:image/png;base64,<%= element.icon %>" alt="<%= element.name %>" class="mx-auto d-block" width="75px"></td>
 <td class="cl-<%= element.id %>"><a href="server/<%= element.id %>"><%= element.name %></a></td>
 <td class="cl-<%= element.id %>"><%= element.ip %>&ensp;<span class="cb-<%= element.id %> fa fa-clipboard copybtn" data-clipboard-text="<%= element.ip %>"></span></td>
 <td class="cl-<%= element.id %>"><%= element.version %></td>
@@ -74,6 +83,5 @@
 </div>
 
 <script src="assets/index.js"></script>
-<script>getGlobalGraph()</script>
-<script>getStats()</script>
+<script>getGlobalGraph(); getStats();</script>
 <%- include('../partials/footer') %>
