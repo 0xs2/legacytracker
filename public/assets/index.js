@@ -1,10 +1,5 @@
 $('[data-toggle="tooltip"]').tooltip();
 
-let colorArray = ['#e86890', '#ef23d7', '#2040aa',
-  '#89fc6a', '#A6DEE6', '#9400D3', '#1AFF33', '#bd322b',
-  '#f3a0ea', '#f89a41', '#fce753', '#99E6E6', '#6666FF'
-];
-
 let options = {
 tooltips: {
 mode: 'index'
@@ -75,10 +70,12 @@ function getGlobalGraph() {
         t.push(moment.unix(element).format('MM/DD/YYYY (hh:mm:ss a)'));
       });
 
-      data.servers.forEach((element, key) => {
-        $(`td.cl-${key+1}`).css({"background": colorArray[key+1] + "11", "color": colorArray[key+1]});
-        $(`td.cl-${key+1} a`).css({"color": colorArray[key+1]});
-        $(`.cb-${key+1}`).css({"color": colorArray[key+1] + "88"});
+      data.servers.forEach((element) => {
+        let color = element.color;
+
+        $(`td.cl-${element.id}`).css({"background": color + "11", "color": color});
+        $(`td.cl-${element.id} a`).css({"color": color});
+        $(`.cb-${element.id}`).css({"color": color + "88"});
 
          builder.push({
           label: element.name,
@@ -88,10 +85,10 @@ function getGlobalGraph() {
           lineTension: 0,
           pointRadius: 0,
           pointHitRadius: 10,
-          pointBackgroundColor: colorArray[key+1],
-          pointBorderColor: colorArray[key+1],
-          borderColor: colorArray[key+1],
-          backgroundColor: colorArray[key+1] + "22",
+          pointBackgroundColor: color,
+          pointBorderColor: color,
+          borderColor: color,
+          backgroundColor: color + "22",
         })
       });
       
@@ -111,7 +108,8 @@ function getGlobalGraph() {
 }
 
   function getServerGraph() {
-    let id = $("#id").val()
+    let id = $("#id").val();
+    let color = $("#color").val();
     $.ajax({
       url: "../api/getServerHistory",
       data: {
@@ -130,8 +128,8 @@ function getGlobalGraph() {
             t.push(moment.unix(element).format('MM/DD/YYYY (hh:mm:ss a)'));
           });
 
-          $(`.text-${id}`).css({"color": colorArray[id]});
-          $(`.cb-${id}`).css({"color": colorArray[id] + "88"});
+          $(`.text-${id}`).css({"color": color});
+          $(`.cb-${id}`).css({"color": color + "88"});
 
           new Chart("myChart", {
             type: "line",
@@ -145,9 +143,9 @@ function getGlobalGraph() {
                 data: data.cnt,
                 borderWidth: 2,
                 fill: true,
-                pointBackgroundColor: colorArray[$("#id").val()],
-                borderColor: colorArray[$("#id").val()],
-                backgroundColor: colorArray[$("#id").val()] + "22",
+                pointBackgroundColor: color,
+                borderColor: color,
+                backgroundColor: color + "22",
               }],
             },
             options: options

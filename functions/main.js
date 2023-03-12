@@ -1,4 +1,5 @@
 const axios = require('axios');
+const randomColor = require('randomcolor');
 const moment = require('moment');
 
 async function getServerInformationByID(id, knex) {
@@ -121,6 +122,7 @@ async function getData(el, knex) {
         name: el.serverName,
         ip: el.serverIp,
         nip: el.numericalIP,
+        color: el.color,
         auth: Boolean(el.authenticated),
         whitelisted: Boolean(el.whitelisted),
         max: el.maxPlayers,
@@ -200,7 +202,10 @@ async function getGlobalHistory(knex) {
         }
 
         final.push({
-            "name": el.serverName, 
+            "id": el.id,
+            "name": el.serverName,
+            "uuid": el.uuid, 
+            "color": el.color,
             "cnt": count.reverse()
         }
     );
@@ -224,6 +229,7 @@ async function createTables(knex) {
                     t.text('serverVersion');
                     t.string('serverIp', 50);
                     t.string('numericalIP', 50);
+                    t.string('color', 50);
                     t.integer('onlineMode', 10);
                     t.integer('authenticated', 10);
                     t.integer('whitelist', 10);
@@ -329,6 +335,7 @@ async function insertServer(knex, data) {
             serverPort: data.serverPort,
             maxPlayers: data.maxPlayers,
             serverIcon: data.serverIcon,
+            color: randomColor(),
             serverIP: data.serverIP,
             numericalIP: data.numericalIP,
             whitelist: data.whitelist,
@@ -389,6 +396,12 @@ async function getServerNameID(knex, id) {
 async function getServerUUID(knex, id) {
     let data = await knex("servers").where("id", id).select("uuid");
     return data[0].uuid; 
+}
+
+
+async function getServerColor(knex, id) {
+    let data = await knex("servers").where("id", id).select("color");
+    return data[0].color; 
 }
 
 async function updateServerTable(knex) {
