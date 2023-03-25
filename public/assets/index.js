@@ -159,14 +159,14 @@ function getGlobalGraph() {
 
   $("#toggle").click(function () {
     if (isToggled == true) {
-      $(".chart").show();
-      $("#toggle").text("Hide Chart");
+      $(".chart").hide();
+      $("#toggle").text("Show Chart");
 
 
       isToggled = false;
     } else {
-      $(".chart").hide();
-      $("#toggle").text("Show Chart");
+      $(".chart").show();
+      $("#toggle").text("Hide Chart");
       isToggled = true;
     }
   });
@@ -199,7 +199,7 @@ function getGlobalGraph() {
     event.preventDefault();
     var query = $("#search").val();
     $.ajax({
-      url:"api/getPlayer",
+      url:"../api/getPlayer",
         data: {player: query},
         method: "GET",
         success: function(data){
@@ -231,7 +231,7 @@ function getGlobalGraph() {
           imageUrl: img,
           imageHeight: 100,
           imageAlt: data.player,
-          html: `Is a Mojang Account: <strong>${data.isValid}</strong><br>Servers: <strong>${builder.join("</strong><strong>, ")}</strong>`,
+          html: `Is a Mojang Account: <strong>${data.isValid}</strong><br>Servers: <strong>${builder.join("</strong>, <strong>")}</strong>`,
           allowOutsideClick: false,
           allowEscapeKey: false
           }) 
@@ -239,3 +239,20 @@ function getGlobalGraph() {
     }
     });
     });
+
+
+    function getPlayers() {
+      $.ajax({
+        url:"../api/getPlayersOnline",
+          data: {id: $("#id").val()},
+          method: "GET",
+          success: function(data){        
+            if(data.count == 0) {
+              $(".player-list").html(`<p class="text-danger text-bold">No players are online :(</p>`);
+            }
+            else {
+              $(".player-list").html(`<strong>${data.players.join("</strong>, <strong>")}</strong>`);
+            }
+        }
+      });
+    }

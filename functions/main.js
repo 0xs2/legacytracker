@@ -46,7 +46,7 @@ async function getServerPlayers(knex, q) {
     }
 }
 
-async function updatePlayerDate(knex, server_id, player) {
+async function updatePlayerStats(knex, server_id, player) {
     await knex('server_players').where({"server_id": server_id, "player": player}).update({
         lastUpdated: moment().format('X')
     });
@@ -135,7 +135,7 @@ async function getData(el, knex) {
 }
 
 async function getPlayer(player, knex) {
-    let user = await knex('server_players').whereLike('player', `%${player}%`).select();
+    let user = await knex('server_players').whereRaw("LOWER(player) LIKE '%' || LOWER(?) || '%' ", player).select();
 
     if(user.length < 1) {
         return {"success": false, "message": "no data available"};
@@ -180,6 +180,29 @@ async function checkPlayer(player) {
             isValid: true,
             uuid: data.uuid,
             player: data.username
+        }
+    }
+}
+
+async function getPlayersOnline(knex, id) {
+    let count = await knex('server_player_count').where("server_id", id).select(["onlinePlayers","date"]).limit(1).orderBy("date", "desc");
+
+    if(count.length == 0) {
+        return {success: false};
+    }
+    else {
+        let c = count[0]['onlinePlayers'];
+        let data = await knex('server_players').where("server_id", id).select(["player","lastUpdated"]).limit(c).orderBy("lastUpdated", "desc");
+
+        let builder = [];
+        for(const d of data) {
+            builder.push(d.player);
+        }
+
+        return {
+            success: true,
+            count: c,
+            players: builder
         }
     }
 }
@@ -308,7 +331,7 @@ async function insertPlayer(knex, data) {
 
         for (const player of data.players) { 
 
-        let p = await knex('server_players').where({'player': player.username, 'uuid': data.uuid}).select('player');
+        let p = await knex('server_players').where({'player': player.username, 'uuid': data.uuid}).select(["player"]);
 
         if(p.length < 1) {
             await knex('server_players').insert({
@@ -320,7 +343,7 @@ async function insertPlayer(knex, data) {
             });
         }
         else {
-            updatePlayerDate(knex, id, player.username)
+            updatePlayerStats(knex, id, player.username)
         }
     }
 }
@@ -398,24 +421,23 @@ async function getServerUUID(knex, id) {
     return data[0].uuid; 
 }
 
-
-async function getServerColor(knex, id) {
-    let data = await knex("servers").where("id", id).select("color");
-    return data[0].color; 
-}
-
 async function updateServerTable(knex) {
     let data = await request(process.env.SERVERS_URL);
 
     for (const el of data.servers) {
         let server = await knex('servers').where('uuid', el.uuid).select('id');
-
+        let data2 = await request(`${process.env.SERVER_URL}?uuid=${el.uuid}&icons=true`);
+        
         if(server.length == 1) {
-            let data2 = await request(`${process.env.SERVER_URL}?uuid=${el.uuid}&icons=true`);
             updateServer(knex, data2, server[0].id);
         }
-
-    };
+        else {
+            // if not found insert a new server and it's data
+            insertServer(knex, data2);
+            insertPlayer(knex, data2);
+            insertCount(knex, data2);
+        }
+    }
 }
 
 async function updateServer(knex, data, id) {
@@ -449,5 +471,6 @@ module.exports = {
     getServerPlayers,
     getPlayer,
     getServers,
-    serverTable
+    serverTable,
+    getPlayersOnline
 };

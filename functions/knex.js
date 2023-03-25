@@ -1,7 +1,7 @@
 module.exports = require('knex')({
     client: 'sqlite3',
     connection: {
-        filename: '/home/sui/small-legacy-tracker/slt.db',
+        filename: '/home/jf2erjif283f24rg35tgu24hf/small-legacy-tracker/slt.db',
     },
     useNullAsDefault: true
 });

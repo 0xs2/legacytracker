@@ -39,6 +39,11 @@ module.exports = function (app,knex,sortArray,m) {
         }
     });
 
+    app.get("/api/getPlayersOnline", async (req,res) => { 
+        res.json(await m.getPlayersOnline(knex, req.query['id']));
+
+    });
+
     app.get("/api/getServer", async (req,res) => {
         if(!req.query['key'] || req.query['key'] != process.env.API_KEY) {
             res.json({success: false, message: "invalid/no api key"});

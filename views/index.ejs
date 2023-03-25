@@ -25,18 +25,10 @@
 
 <div class="d-flex justify-content-between">
 <div class="item">
-  <h2><a href="./">SLT</a></h2>
-  <p>Small Legacy Server List and Tracker</p>
+  <h2>SLT</h2>
 </div>
 <div class="item">
-  <form class="form-horizontal" method="" id="searchForm">
-    <div class="input-group-prepend">
-      <input type="text" id="search" class="form-control bg-dark" placeholder="Search Player" required>
-  </div>
-    </form>
-</div>
-<div class="item">
-  <span type="button" id="toggle" class="btn btn-outline-primary">Show Chart</span>
+  <span type="button" id="toggle" class="btn btn-outline-primary">Hide Chart</span>
 </div>
 </div>
 
@@ -83,5 +75,12 @@
 </div>
 
 <script src="assets/index.js"></script>
-<script>getGlobalGraph(); getStats();</script>
+<script>
+
+$( document ).ready(function() {
+  getGlobalGraph(); 
+  getStats();
+});
+
+</script>
 <%- include('../partials/footer') %>

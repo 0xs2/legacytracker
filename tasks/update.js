@@ -12,7 +12,7 @@ const promiseExecutionServerData = async (m,knex) => {
     m.serverData(knex)
 };
 
-cron.schedule('0 0 * * *', () => {
+cron.schedule('*/10 * * * *', () => {
     promiseExecutionServer(m,knex);
 });
 

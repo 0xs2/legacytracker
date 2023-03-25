@@ -16,6 +16,8 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.10/dist/clipboard.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@5/dark.css" />
 <%- include('../partials/head') %>
 <title>SLT | <%= data.name %></title>
 </head>
@@ -23,11 +25,10 @@
 
 <div class="d-flex justify-content-between">
 <div class="item">
-<h2><a href="../">SLT</a> | <strong class="text-<%= data.id %>"><%= data.name %></strong></h2>
-<p><strong class="text-<%= data.id %>"><%= data.name %></strong>'s information </p>
+<h2>SLT Server</h2>
 </div>
 </div>
-
+<p><strong class="text-<%= data.id %>"><%= data.name %></strong>'s information</p>
 <div class="row">
     <div class="col-lg-4">
         <div class="card bg-dark">
@@ -105,17 +106,20 @@
         </div>
     </div>
     <br>
-
+    <div class="card bg-dark players">
+        <div class="card-header">Players</div>
+        <div class="card-body player-list"></div>
+    </div>
+<br>    
 <div class="card bg-dark">
     <div class="card-header">Players Overtime</div>
     <div class="card-body h-100 d-flex align-items-center justify-content-center"><div class="serv"><canvas id="myChart"></canvas></div></canvas></div>
 </div>
-
 </div>
 
 </div>
 
 <script src="../assets/index.js"></script>
-<script>getServerGraph();</script>
+<script>getServerGraph(); getPlayers();</script>
 <%- include('../partials/footer') %>
 
