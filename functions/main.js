@@ -135,7 +135,7 @@ async function getData(el, knex) {
 }
 
 async function getPlayer(player, knex) {
-    let user = await knex('server_players').whereRaw("LOWER(player) LIKE '%' || LOWER(?) || '%' ", player).select();
+    let user = await knex('server_players').whereRaw("LOWER(player) == LOWER(?)", player).select();
 
     if(user.length < 1) {
         return {"success": false, "message": "no data available"};
