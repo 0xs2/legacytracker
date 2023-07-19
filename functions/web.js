@@ -6,12 +6,7 @@ module.exports = function (app,knex,sortArray,m) {
 
     app.get("/server/:id", async (req,res) => {
         let data = await m.getServerInformationByID(req.params.id, knex);
-        if(!data) {
-            res.status(404).send("not found");
-        }
-        else {
-            res.render("server", {data: data});
-        }
+        !data ? res.status(404).send("not found") : res.render("server", {data: data});
     });
 
     app.get("/api/getServerHistory", async (req,res) => {
@@ -31,12 +26,7 @@ module.exports = function (app,knex,sortArray,m) {
     });
 
     app.get("/api/getServerPlayers", async (req,res) => {
-        if(!req.query['key'] || req.query['key'] != process.env.API_KEY) {
-            res.json({success: false, message: "invalid/no api key"});
-        }
-        else {
-            res.json(await m.getServerPlayers(knex,req.query['id']));
-        }
+        !req.query['key'] || req.query['key'] != process.env.API_KEY ? res.json({success: false, message: "invalid/no api key"}) : res.json(await m.getServerPlayers(knex,req.query['id']));
     });
 
     app.get("/api/getPlayersOnline", async (req,res) => { 
@@ -45,21 +35,11 @@ module.exports = function (app,knex,sortArray,m) {
     });
 
     app.get("/api/getServer", async (req,res) => {
-        if(!req.query['key'] || req.query['key'] != process.env.API_KEY) {
-            res.json({success: false, message: "invalid/no api key"});
-        }
-        else {
-            res.json(await m.getServerInformationByID(req.query['id'], knex));
-        }
+        !req.query['key'] || req.query['key'] != process.env.API_KEY ? res.json({success: false, message: "invalid/no api key"}) : res.json(await m.getServerInformationByID(req.query['id'], knex));
     });
 
     app.get("/api/getServers", async (req,res) => {
-        if(!req.query['key'] || req.query['key'] != process.env.API_KEY) {
-            res.json({success: false, message: "invalid/no api key"});
-        }
-        else {
-            res.json({servers: await m.getServers(knex), success: true});
-        }
+        !req.query['key'] || req.query['key'] != process.env.API_KEY ? res.json({success: false, message: "invalid/no api key"}) : res.json({servers: await m.getServers(knex), success: true});
     });
 
     app.all('*', (req, res) => {

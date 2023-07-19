@@ -73,7 +73,7 @@ function getGlobalGraph() {
       data.servers.forEach((element) => {
         let color = element.color;
 
-        $(`td.cl-${element.id}`).css({"background": color + "11", "color": color});
+        $(`td.cl-${element.id}`).css({"color": color});
         $(`td.cl-${element.id} a`).css({"color": color});
         $(`.cb-${element.id}`).css({"color": color + "88"});
 

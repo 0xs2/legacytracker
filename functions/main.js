@@ -4,13 +4,7 @@ const moment = require('moment');
 
 async function getServerInformationByID(id, knex) {
     let server = await knex('servers').where("id", id).select();
-
-    if(server.length != 1) {
-        return false;
-    }
-    else {
-        return await getData(server[0], knex);
-    }
+    return server.length != 1 ? false : await getData(server[0], knex);
 }
 
 
@@ -53,7 +47,7 @@ async function updatePlayerStats(knex, server_id, player) {
 }
 
 async function getServerInformation(knex,sortArray) {
-    let servers = await knex('servers').select();
+    let servers = await knex('servers').where({isActive: true}).select();
     let data = [];
     for (const el of servers) {
         data.push(await getData(el,knex));
@@ -67,7 +61,7 @@ async function getServerInformation(knex,sortArray) {
 
 async function getStats(knex) {
     let p3 = await knex("server_players").count('player', {as: 'count'}).limit(1); 
-    let p = await knex("servers").count('id', {as: 'count'}).limit(1); 
+    let p = await knex("servers").where({isActive: true}).count('id', {as: 'count'}).limit(1); 
     let p2 = await getOnlinePlayers(knex);
     let p1 = await knex('server_player_count').select(["date"]).orderBy('date', 'desc').limit(1);
 
@@ -109,7 +103,6 @@ async function getServerHistory(q, knex) {
 }
 
 async function getData(el, knex) {
-    let p = await knex("server_player_count").where("uuid", el.uuid).select("onlinePlayers").orderBy("onlinePlayers", "desc").limit(1); 
     let p2 = await knex("server_player_count").where("uuid", el.uuid).select("onlinePlayers").orderBy("date", "desc").limit(1); 
     let p3 = await knex("server_players").where("uuid", el.uuid).count('player', {as: 'count'}).limit(1); 
 
@@ -126,7 +119,7 @@ async function getData(el, knex) {
         auth: Boolean(el.authenticated),
         whitelisted: Boolean(el.whitelisted),
         max: el.maxPlayers,
-        peak: p[0].onlinePlayers,
+        peak: el.recordPlayerCount,
         online: p2[0].onlinePlayers,
         stored: p3[0].count,
         onlinemode: Boolean(el.onlineMode),
@@ -167,21 +160,7 @@ async function getPlayer(player, knex) {
 
 async function checkPlayer(player) {
     let data = await request(process.env.MOJANG_URL + player);
-
-    if(!data) {
-        return {
-            isValid: false,
-            uuid: null,
-            player: player
-        }
-    }
-    else {
-        return {
-            isValid: true,
-            uuid: data.uuid,
-            player: data.username
-        }
-    }
+    return !data ? { isValid: false, uuid: null, player: player } : {isValid: true,uuid: data.uuid, player: data.username}
 }
 
 async function getPlayersOnline(knex, id) {
@@ -209,7 +188,7 @@ async function getPlayersOnline(knex, id) {
 
 async function getGlobalHistory(knex) { 
     let final = [];
-    let data = await knex('servers').select();
+    let data = await knex('servers').where("isActive", true).select();
     let timestamps = [];
 
     for(const el of data) {
@@ -297,7 +276,8 @@ async function createTables(knex) {
 
 // main server data function
 async function serverData(knex) {
-    let servers = await knex('servers').select();
+    // only update the 'active' servers
+    let servers = await knex('servers').where({isActive: true}).select();
 
     for (const el of servers) {
         let data2 = await request(`${process.env.SERVER_URL}?uuid=${el.uuid}`);
@@ -326,7 +306,7 @@ async function serverTable(knex) {
 }
 
 async function insertPlayer(knex, data) {
-    if(data.players.length != 0) {
+    if(data.players) {
         let id = await getServerID(knex, data.uuid);
 
         for (const player of data.players) { 
@@ -370,29 +350,34 @@ async function insertServer(knex, data) {
 }
 
 async function insertCount(knex, data) {
-
-            let id = await getServerID(knex, data.uuid);
-
-            await knex('server_player_count').insert({
-                server_id: id,
-                uuid: data.uuid,
-                onlinePlayers: data.onlinePlayers,
-                date: moment().format('X')
+    let id = await getServerID(knex, data.uuid);
+    await knex('server_player_count').insert({
+        server_id: id,
+        uuid: data.uuid,
+        onlinePlayers: data.onlinePlayers,
+        date: moment().format('X')
+    }).then(async (d) => {
+        let c = await getPlayerCountLatest(knex, d);
+        let r = await isRecord(knex, id, c);
+        if(r) {
+            await knex('servers').where("id", id).update({
+                    recordPlayerCount: c
             });
         }
+    });
+}
 
+async function getPlayerCountLatest(knex, id) {
+    let data = await knex("server_player_count").where("id", id).select("onlinePlayers");
+    return data[0].onlinePlayers;
+}
 
 async function request(url) {
     let data = '';
     try {
     await axios.get(url)
         .then(async function (response) {
-
-            if (response.status != 200) {
-                data = false;
-            } else {
-                data = response.data;
-            }
+            data = response.status != 200 ? false : response.data;
         });
     }
     catch(e) {
@@ -422,8 +407,11 @@ async function getServerUUID(knex, id) {
 }
 
 async function updateServerTable(knex) {
-    let data = await request(process.env.SERVERS_URL);
+    // hide all because servers can be removed from the list, if it is fetched it is shown
+    hideAll(knex);
 
+    let data = await request(process.env.SERVERS_URL);
+    
     for (const el of data.servers) {
         let server = await knex('servers').where('uuid', el.uuid).select('id');
         let data2 = await request(`${process.env.SERVER_URL}?uuid=${el.uuid}&icons=true`);
@@ -450,12 +438,36 @@ async function updateServer(knex, data, id) {
             maxPlayers: data.maxPlayers,
             serverIcon: data.serverIcon,
             serverIP: data.serverIP,
+            isActive: true,
             numericalIP: data.numericalIP,
             whitelist: data.whitelist,
             authenticated: data.authenticated,
             onlineMode: data.onlineMode,
             lastUpdated: moment().format('X')
     });
+}
+
+// check if a record is broken
+async function isRecord(knex, server_id, count) {
+    let data = await knex("servers").where("id", server_id).select(["recordPlayerCount"]);
+   return data[0].recordPlayerCount < count ? true : false;
+}
+
+// hide all servers
+async function hideAll(knex) {
+    await knex('servers').update({ isActive: false });
+}
+
+
+// get rid of the older entries after 1 day
+async function purgeOldEntries(knex) {
+    const oneDayAgo = moment().subtract(1, 'day').unix();
+    knex('server_player_count')
+    .where('date', '<', oneDayAgo)
+    .del()
+    .then((numDeletedRows) => {
+        console.log(`${numDeletedRows} rows deleted.`);
+      })
 }
 
 module.exports = {
@@ -469,6 +481,7 @@ module.exports = {
     request,
     updateServerTable,
     getServerPlayers,
+    purgeOldEntries,
     getPlayer,
     getServers,
     serverTable,
