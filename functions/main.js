@@ -3,13 +3,13 @@ const randomColor = require('randomcolor');
 const moment = require('moment');
 
 async function getServerInformationByID(id, knex) {
-    let server = await knex('servers').where("id", id).select();
+    let server = await knex('servers').where({"id": id, isActive: true}).select();
     return server.length != 1 ? false : await getData(server[0], knex);
 }
 
 
 async function getServers(knex) {
-    let servers = await knex('servers').select();
+    let servers = await knex('servers').where("isActive", true).select();
 
     let builder = [];
 
@@ -131,19 +131,24 @@ async function getPlayer(player, knex) {
     let user = await knex('server_players').whereRaw("LOWER(player) == LOWER(?)", player).select();
 
     if(user.length < 1) {
-        return {"success": false, "message": "no data available"};
+        return false;
     }
     else {
         let builder = [];
 
         for(const el of user) {
-            let server = await getServerName(knex, el.uuid);
+            let server = await getServerInformationByID(el.server_id, knex);
 
-            builder.push({
-            server: server,
-            server_uuid: el.uuid,
-            date: el.date
-            });
+            if(server) {
+                builder.push({
+                    server_id: server.id,
+                    server: server.name,
+                    server_icon: server.icon,
+                    server_uuid: el.uuid,
+                    date: el.date,
+                    last_date: el.lastUpdated
+                });
+            }
         }
 
         let p = await checkPlayer(player);

@@ -214,27 +214,7 @@ function getGlobalGraph() {
           })
         }
       else {
-        let builder = [];
-        data.servers.forEach(element => {
-            builder.push(element.server);
-        });
-
-        if(data.uuid != null) {
-          img = `https://crafatar.com/avatars/${data.uuid}?size=100&overlay`;
-        }
-        else {
-          img = `https://crafatar.com/avatars/8667ba71-b85a-4004-af54-457a9734eed7?size=100`;
-        }
-      
-        Swal.fire({
-          title: data.player,
-          imageUrl: img,
-          imageHeight: 100,
-          imageAlt: data.player,
-          html: `Is a Mojang Account: <strong>${data.isValid}</strong><br>Servers: <strong>${builder.join("</strong>, <strong>")}</strong>`,
-          allowOutsideClick: false,
-          allowEscapeKey: false
-          }) 
+        window.location = `../user/${data.player}`;
       }
     }
     });
@@ -251,7 +231,13 @@ function getGlobalGraph() {
               $(".player-list").html(`<p class="text-danger text-bold">No players are online :(</p>`);
             }
             else {
-              $(".player-list").html(`<strong>${data.players.join("</strong>, <strong>")}</strong>`);
+              let d = [];
+
+              data.players.forEach(element => {
+                d.push(`<a href="../user/${element}">${element}</a>`);
+              });
+
+              $(".player-list").html(d.join(", "));
             }
         }
       });

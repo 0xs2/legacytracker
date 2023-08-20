@@ -9,6 +9,11 @@ module.exports = function (app,knex,sortArray,m) {
         !data ? res.status(404).send("not found") : res.render("server", {data: data});
     });
 
+    app.get("/user/:user", async (req,res) => {
+        let data = await m.getPlayer(req.params.user, knex);
+        !data ? res.status(404).send("not found") : res.render("user", {data: data});
+    });
+
     app.get("/api/getServerHistory", async (req,res) => {
         res.json(await m.getServerHistory(req.query['id'], knex));
     });
@@ -22,7 +27,8 @@ module.exports = function (app,knex,sortArray,m) {
     });
 
     app.get("/api/getPlayer", async (req,res) => {
-        res.json(await m.getPlayer(req.query['player'],knex));
+        let data = await m.getPlayer(req.query['player'],knex);
+        res.json(data ? data : {success: false, message: "player does not exist."});
     });
 
     app.get("/api/getServerPlayers", async (req,res) => {
