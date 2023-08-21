@@ -28,11 +28,10 @@
 <div class="d-flex justify-content-between mb-3">
 <div class="item">
 <h2><strong><%= data.player %></strong></h2>
-<small id="q_uuid"><%= data.uuid %></small>
+<small><span id="q_uuid"><%= data.uuid %></span> &ensp; <span class="fa fa-clipboard copybtn" data-clipboard-text="<%= data.uuid %>"></span></small>
 </div>
 <div class="item">
-<h2><strong ><%= Boolean(data.isValid) %></strong></h2>
-<small id="q_uuid"><%= data.uuid %></small>
+<h2><strong><%- data.isValid ? '<span class="badge badge-success">Verfied Account</span>' : '<span class="badge badge-danger">Non-Verfied Account</span>' %></strong></h2>
 </div>
 </div>
 
@@ -41,6 +40,7 @@
 <div class="card bg-dark">
 
 <center>
+<img id="playerImg" style="display: none;margin-top: 25px;margin-bottom: 25px;">
 <canvas id="player"></canvas>
 </center>
 </div>
@@ -75,40 +75,61 @@
 
 
 <script src="../assets/index.js"></script>
-<script src="../assets/skinview3d.bundle.js"></script>
-
 <script>
-
-// minecraft skin
-let skinViewer = new skinview3d.SkinViewer({
-canvas: document.getElementById("player"),
-skin: `https://minotar.net/skin/${$("#q_uuid").text()}`
-});
-
-skinViewer.width = 350;
-skinViewer.height = 350;
-
-skinViewer.controls.enableZoom = false
-skinViewer.zoom = 0.8;
-skinViewer.fov = 85;
-skinViewer.animation = new skinview3d.WalkingAnimation();
-skinViewer.animation.headBobbing = false;
-skinViewer.animation.speed = 0.5;
-
-
 // first and last date parses
 let first = $(".first");
 let last = $(".last");
 
 $('.first').each(function(index, element) {
-$(this).text(moment.unix($(this).text()).format('L')).show();
+$(this).text(moment.unix($(this).text()).format("DD-MM-YYYY")).show();
 });
 
 $('.last').each(function(index, element) {
 
-$(this).text(moment.unix($(this).text()).format('L')).show();
+$(this).text(moment.unix($(this).text()).format("DD-MM-YYYY")).show();
 });
 
+</script>
+<script src="../assets/skinview3d.bundle.js"></script>
+
+<script>
+
+// if they have webgl, show the model if not show a img of the skin instead
+if (checkWebGLSupport()) {
+    let skinViewer = new skinview3d.SkinViewer({
+    canvas: document.getElementById("player"),
+    skin: `https://minotar.net/skin/${$("#q_uuid").text()}`
+    });
+
+    skinViewer.width = 350;
+    skinViewer.height = 350;
+
+    skinViewer.controls.enableZoom = false
+    skinViewer.zoom = 0.8;
+    skinViewer.fov = 85;
+    skinViewer.animation = new skinview3d.WalkingAnimation();
+    skinViewer.animation.headBobbing = false;
+    skinViewer.animation.speed = 0.5;
+} else {
+    $("#playerImg").attr({
+        "src": `https://visage.surgeplay.com/full/250/${$("#q_uuid").text()}`
+    }).show();
+}
+
+function checkWebGLSupport() {
+    if (window.WebGLRenderingContext) {
+    const canvas = document.createElement("canvas");
+    const context = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+
+    if (context && context instanceof WebGLRenderingContext) {
+        return true;
+    } else {
+        return false;
+    }
+    } else {
+    return false;
+    }
+    }
 </script>
 
 <%- include('../partials/footer') %>
