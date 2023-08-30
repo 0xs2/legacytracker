@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="language" content="English">
 <meta name="description" content="View Player <%= data.player %>">
-<meta name="title" content="SLT | Player <%= data.player %>">
-<link rel="canonical" href="https://slt.0xs.dev/user/<%= data.player %>">
+<meta name="title" content="Legacy Player | <%= data.player %>">
+<link rel="canonical" href="https://legacytracker.xyz/user/<%= data.player %>">
 <link rel="icon" href="https://crafatar.com/avatars/<%= data.uuid %>?size=128&overlay">
 <meta name="theme-color" content="#131313">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
@@ -21,7 +21,7 @@
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@10"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@sweetalert2/theme-dark@5/dark.css" />
 <%- include('../partials/head') %>
-<title>SLT | Player <%= data.player %></title>
+<title>Legacy Player | <%= data.player %></title>
 </head>
 <%- include('../partials/header') %>
 
@@ -53,8 +53,8 @@
 <tr>
 <th class="text-center text-bold"></th>
 <th>Server</th>
-<th>First Join</th>
-<th>Last Join</th>
+<th>Cached on</th>
+<th>Updated</th>
 </tr>
 </thead>
 <tbody>

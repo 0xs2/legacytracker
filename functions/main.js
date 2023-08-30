@@ -62,7 +62,7 @@ async function getServerInformation(knex,sortArray) {
 async function getStats(knex) {
     let p3 = await knex("server_players").count('player', {as: 'count'}).limit(1); 
     let p = await knex("servers").where({isActive: true}).count('id', {as: 'count'}).limit(1); 
-    let p2 = await getOnlinePlayers(knex);
+    let p2 = await getOnlinePlayers(knex, p[0].count);
     let p1 = await knex('server_player_count').select(["date"]).orderBy('date', 'desc').limit(1);
 
     return {
@@ -75,13 +75,14 @@ async function getStats(knex) {
 
 }
 
-async function getOnlinePlayers(knex) {
-    let data = await knex('server_player_count').select(["onlinePlayers"]).orderBy('date', 'desc').limit(10);
-    builder = [];
+async function getOnlinePlayers(knex, c) {
+    let data = await knex('server_player_count').select(["onlinePlayers"]).orderBy('date', 'desc').limit(c);
+	let co = 0;
     for(const el of data) {
-        builder.push(el.onlinePlayers);
+
+        co += el.onlinePlayers;
     }
-    return builder.reduce((a, b) => a + b, 0)
+    return co;
 }
 
 async function getServerHistory(q, knex) { 
