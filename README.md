@@ -1,6 +1,6 @@
-# slt
+# legacy tracker (formly known as slt)
 
-Small Legacy Tracker in NodeJS, nice web UI with Graphs and hisoric data
+Legacy Tracker in NodeJS, nice web UI with Graphs and hisoric data
 
 # Update 08/*/2023
 - Proper player page has been added. :)
