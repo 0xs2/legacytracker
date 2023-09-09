@@ -8,6 +8,14 @@ body {
     padding: none;
 }
 
+#playerImg {
+    display: none;
+    display: block;
+    margin: 0 auto;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
 .c {
     padding-left: 75px;
     padding-right: 75px;

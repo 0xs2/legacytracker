@@ -44,19 +44,19 @@
                     </div>
                 <div class="card-title">
                     <label class="col-6 col-md-6" style="font-weight: bold;">Version</label>
-                    <%= data.version %> 
+                    <span class="badge badge-info"><%= data.version %></span>
                 </div>
                 <div class="card-title">
                     <label class="col-6 col-md-6" style="font-weight: bold;">Authed</label>
-                    <%= data.auth %> 
+                    <span class="badge badge-<%= data.auth ? 'success' : 'danger' %>"><%= data.auth %></span>
                 </div>
                 <div class="card-title">
                     <label class="col-6 col-md-6" style="font-weight: bold;">Online Mode</label>
-                    <%= data.onlinemode %> 
+                    <span class="badge badge-<%= data.onlinemode  ? 'success' : 'danger' %>"><%= data.onlinemode %></span>
                 </div>
                 <div class="card-title">
                     <label class="col-6 col-md-6" style="font-weight: bold;">Whitelisted</label>
-                    <%= data.whitelisted %> 
+                    <span class="badge badge-<%= data.whitelisted ? 'success' : 'danger' %>"><%= data.whitelisted %></span>
                 </div>
             </div>
         </div>
@@ -66,19 +66,19 @@
         <div class="card-body">
             <div class="card-title">
                 <label class="col-6 col-md-6" style="font-weight: bold;">Unique Joined</label>
-                <%= data.stored %> 
+                <%= data.stored.toLocaleString() %> 
             </div>
             <div class="card-title">
                 <label class="col-6 col-md-6" style="font-weight: bold;">Peak Online</label>
-                <%= data.peak %> 
+                <%= data.peak.toLocaleString() %> 
             </div>
             <div class="card-title">
                 <label class="col-6 col-md-6" style="font-weight: bold;">Online</label>
-                <%= data.online %> 
+                <%= data.online.toLocaleString() %> 
             </div>
             <div class="card-title">
                 <label class="col-6 col-md-6" style="font-weight: bold;">Player Slots</label>
-                <%= data.max %> 
+                <%= data.max.toLocaleString() %> 
             </div>
         </div>
     </div>

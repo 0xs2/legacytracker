@@ -7,7 +7,7 @@
 <meta name="description" content="View Player <%= data.player %>">
 <meta name="title" content="Legacy Player | <%= data.player %>">
 <link rel="canonical" href="https://legacytracker.xyz/user/<%= data.player %>">
-<link rel="icon" href="https://crafatar.com/avatars/<%= data.uuid %>?size=128&overlay">
+<link rel="icon" href="https://crafatar.com/avatars/<%= data.uuid ? data.uuid : '00000000-0000-0000-0000-000000000000' %>?size=128&overlay">
 <meta name="theme-color" content="#131313">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.0/css/font-awesome.min.css" />
@@ -25,14 +25,12 @@
 </head>
 <%- include('../partials/header') %>
 
-<div class="d-flex justify-content-between mb-3">
-<div class="item">
-<h2><strong><%= data.player %></strong></h2>
-<small><span id="q_uuid"><%= data.uuid %></span> &ensp; <span class="fa fa-clipboard copybtn" data-clipboard-text="<%= data.uuid %>"></span></small>
-</div>
-<div class="item">
-<h2><strong><%- data.isValid ? '<span class="badge badge-success">Verfied Account</span>' : '<span class="badge badge-danger">Non-Verfied Account</span>' %></strong></h2>
-</div>
+<div class="mb-3">
+<h2><strong><%= data.player %></strong> <%- data.isValid ? '\<span data-toggle="tooltip" data-placement="top" title="This account is verified">\<span class="badge badge-success">&#10003;\</span>\</span>' : '\<span data-toggle="tooltip" data-placement="top" title="This account is not verified">\<span class="badge badge-danger">&#10007;\</span>\</span>' %></h2>
+<% if (data.isValid) { %>
+    <small><span id="q_uuid"><%= data.uuid %></span>&ensp;<span class="fa fa-clipboard copybtn" data-clipboard-text="<%= data.uuid %>"></span></small>
+<% } %>
+</p>
 </div>
 
 <div class="row">
@@ -40,14 +38,16 @@
 <div class="card bg-dark">
 
 <center>
-<img id="playerImg" style="display: none;margin-top: 25px;margin-bottom: 25px;">
+<img id="playerImg">
 <canvas id="player"></canvas>
 </center>
 </div>
 
+
+
 </div>  
 <div class="col-lg-8">
-
+    <div class="table-responsive-lg">
 <table class="table table-bordered">
 <thead>
 <tr>
@@ -72,7 +72,7 @@
 </tbody>
 </table>
 </div>
-
+</div>
 
 <script src="../assets/index.js"></script>
 <script>
@@ -93,43 +93,7 @@ $(this).text(moment.unix($(this).text()).format("DD-MM-YYYY")).show();
 <script src="../assets/skinview3d.bundle.js"></script>
 
 <script>
-
-// if they have webgl, show the model if not show a img of the skin instead
-if (checkWebGLSupport()) {
-    let skinViewer = new skinview3d.SkinViewer({
-    canvas: document.getElementById("player"),
-    skin: `https://minotar.net/skin/${$("#q_uuid").text()}`
-    });
-
-    skinViewer.width = 350;
-    skinViewer.height = 350;
-
-    skinViewer.controls.enableZoom = false
-    skinViewer.zoom = 0.8;
-    skinViewer.fov = 85;
-    skinViewer.animation = new skinview3d.WalkingAnimation();
-    skinViewer.animation.headBobbing = false;
-    skinViewer.animation.speed = 0.5;
-} else {
-    $("#playerImg").attr({
-        "src": `https://visage.surgeplay.com/full/250/${$("#q_uuid").text()}`
-    }).show();
-}
-
-function checkWebGLSupport() {
-    if (window.WebGLRenderingContext) {
-    const canvas = document.createElement("canvas");
-    const context = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
-
-    if (context && context instanceof WebGLRenderingContext) {
-        return true;
-    } else {
-        return false;
-    }
-    } else {
-    return false;
-    }
-    }
+showPlayerModel($("#q_uuid").text());
 </script>
 
 <%- include('../partials/footer') %>

@@ -47,7 +47,7 @@ function getStats() {
       $(".stats").html(`<p class="text-danger">Error fetching statistics</p>`);
       }
       else {
-      $(".stats").html(`<p>Servers: <strong class="text-bolder text-success">${data.totalServers}</strong>, Online Users: <strong class="text-bolder text-success">${data.totalUsersOnline}</strong>, Unique Users: <strong class="text-bolder text-success">${data.totalUsers}</strong></p>`);
+      $(".stats").html(`<p>Servers: <strong class="text-bolder text-success">${data.totalServers.toLocaleString()}</strong>, Online Users: <strong class="text-bolder text-success">${data.totalUsersOnline.toLocaleString()}</strong>, Unique Users: <strong class="text-bolder text-success">${data.totalUsers.toLocaleString()}</strong></p>`);
       }
     }
 });
@@ -242,3 +242,45 @@ function getGlobalGraph() {
         }
       });
     }
+
+//    if they have webgl, show the model if not show a img of the skin instead
+function showPlayerModel(uuid) {
+  if (checkWebGLSupport()) {
+      let skinViewer = new skinview3d.SkinViewer({
+      canvas: document.getElementById("player"),
+      skin: `https://minotar.net/skin/${!uuid ? 'null' : uuid}`
+      });
+  
+      skinViewer.width = 350;
+      skinViewer.height = 350;
+  
+      skinViewer.controls.enableZoom = false
+      skinViewer.zoom = 0.8;
+      skinViewer.fov = 85;
+      skinViewer.animation = new skinview3d.WalkingAnimation();
+      skinViewer.animation.headBobbing = false;
+      skinViewer.animation.speed = 0.5;
+  } else {
+      // don't need this if it's not supported
+      $("#player").hide()
+      $("#playerImg").attr({
+          "src": `https://visage.surgeplay.com/full/250/${!uuid ? 'null.png' : uuid}`
+      }).show();
+  }
+  }
+  
+  
+  function checkWebGLSupport() {
+      if (window.WebGLRenderingContext) {
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("webgl") || canvas.getContext("experimental-webgl");
+  
+      if (context && context instanceof WebGLRenderingContext) {
+          return true;
+      } else {
+          return false;
+      }
+      } else {
+      return false;
+      }
+      }
