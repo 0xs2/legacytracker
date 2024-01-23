@@ -248,7 +248,7 @@ function showPlayerModel(uuid) {
   if (checkWebGLSupport()) {
       let skinViewer = new skinview3d.SkinViewer({
       canvas: document.getElementById("player"),
-      skin: `https://minotar.net/skin/${!uuid ? 'null' : uuid}`
+      skin: `https://skins.legacyminecraft.com/skins/${!uuid ? '00000000-0000-0000-0000-000000000000' : uuid}`
       });
   
       skinViewer.width = 350;
