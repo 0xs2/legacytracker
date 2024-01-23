@@ -1,6 +1,6 @@
-# legacy tracker (formly known as slt)
+# legacy tracker
 
-Legacy Tracker in NodeJS, nice web UI with Graphs and hisoric data
+Legacy Minecraft Server Tracker in NodeJS, nice web UI with Graphs and hisoric data
 
 ### Update 01/*/2024
 
@@ -18,5 +18,4 @@ Links:
 - Pings are deleted after 24 hours
 
 ### Credit
-- https://tracker.johnymuffin.com
 - https://servers.api.legacyminecraft.com
