@@ -5,7 +5,8 @@ const app = express({ strict: true });
 const knex = require('./functions/knex');
 const sortArray = require('sort-array');
 const m = require('./functions/main');
-require('dotenv').config({path: './.env'});
+
+require('dotenv').config({path: `./.env`});
 
 app.set("view engine", "ejs")
 

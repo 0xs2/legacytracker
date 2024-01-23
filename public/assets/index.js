@@ -47,7 +47,7 @@ function getStats() {
       $(".stats").html(`<p class="text-danger">Error fetching statistics</p>`);
       }
       else {
-      $(".stats").html(`<p>Servers: <strong class="text-bolder text-success">${data.totalServers.toLocaleString()}</strong>, Online Users: <strong class="text-bolder text-success">${data.totalUsersOnline.toLocaleString()}</strong>, Unique Users: <strong class="text-bolder text-success">${data.totalUsers.toLocaleString()}</strong></p>`);
+      $(".stats").html(`<p><div class="d-flex justify-content-between"><div class="item">Servers: <strong class="text-bolder text-success">${data.totalServers.toLocaleString()}</strong>, Online Users: <strong class="text-bolder text-success">${data.totalUsersOnline.toLocaleString()}</strong>, Unique Users: <strong class="text-bolder text-success">${data.totalUsers.toLocaleString()}</strong></div><div class="item">Pings: <strong class="text-bolder text-danger">${data.totalPings.toLocaleString()}</strong></div></div></p>`);
       }
     }
 });

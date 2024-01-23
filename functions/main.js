@@ -63,12 +63,13 @@ async function getStats(knex) {
     let p3 = await knex("server_players").count('player', {as: 'count'}).limit(1); 
     let p = await knex("servers").where({isActive: true}).count('id', {as: 'count'}).limit(1); 
     let p2 = await getOnlinePlayers(knex, p[0].count);
-    let p1 = await knex('server_player_count').select(["date"]).orderBy('date', 'desc').limit(1);
+    let p1 = await knex('server_player_count').select(["date", "id"]).orderBy('date', 'desc').limit(1);
 
     return {
         totalServers: p[0].count,
         totalUsers: p3[0].count,
         totalUsersOnline: p2,
+        totalPings: p1[0].id,
         lastPinged: p1[0].date,
         success: true
     };
@@ -280,22 +281,6 @@ async function createTables(knex) {
     }
 }
 
-// main server data function
-async function serverData(knex) {
-    // only update the 'active' servers
-    let servers = await knex('servers').where({isActive: true}).select();
-
-    for (const el of servers) {
-        let data2 = await request(`${process.env.SERVER_URL}?uuid=${el.uuid}`);
-
-        // insert all the stuff
-        insertPlayer(knex, data2);
-        insertCount(knex, data2);
-
-    }
-}
-
-
 async function serverTable(knex) {
     let data = await request(process.env.SERVERS_URL);
 
@@ -305,10 +290,21 @@ async function serverTable(knex) {
 
         if(server.length < 1) {
             let data2 = await request(`${process.env.SERVER_URL}?uuid=${el.uuid}&icons=true`);
-            insertServer(knex, data2);
+
+            if(data2) {
+                insertServer(knex, data2);
+
+            }
         }
 
     };
+}
+
+
+function sltlog(str) {
+    if(process.env.LOGGING) {
+        console.log(`[slt-logger] ${str}`);
+    }
 }
 
 async function insertPlayer(knex, data) {
@@ -327,9 +323,12 @@ async function insertPlayer(knex, data) {
                 date: moment().format('X'),
                 lastUpdated: moment().format('X')
             });
+
+            sltlog(`inserted player : ${player.username} | in server : ${data.uuid}`);
         }
         else {
             updatePlayerStats(knex, id, player.username)
+            sltlog(`updated player : ${player.username} | in server : ${data.uuid}`);
         }
     }
 }
@@ -353,44 +352,61 @@ async function insertServer(knex, data) {
             lastUpdated: moment().format('X'),
             date: moment().format('X')
     });
+
+    sltlog(`inserted server : ${data.serverName} | uuid : ${data.uuid}`);
+
 }
 
 async function insertCount(knex, data) {
-    let id = await getServerID(knex, data.uuid);
-    await knex('server_player_count').insert({
-        server_id: id,
-        uuid: data.uuid,
-        onlinePlayers: data.onlinePlayers,
-        date: moment().format('X')
-    }).then(async (d) => {
-        let c = await getPlayerCountLatest(knex, d);
-        let r = await isRecord(knex, id, c);
-        if(r) {
-            await knex('servers').where("id", id).update({
-                    recordPlayerCount: c
-            });
-        }
+    const id = await getServerID(knex, data.uuid);
+    const [insertedId] = await knex('server_player_count').insert({
+      server_id: id,
+      uuid: data.uuid,
+      onlinePlayers: data.onlinePlayers,
+      date: moment().format('X')
     });
+
+    sltlog(`insert new ping for : ${data.uuid} | player count : ${data.onlinePlayers}`);
+
+
+    const latestCount = await getPlayerCountLatest(knex, insertedId);
+    const isRecordBroken = await isRecord(knex, id, latestCount);
+
+    if (isRecordBroken) {
+      await knex('servers').where('id', id).update({
+        recordPlayerCount: latestCount
+      });
+
+      sltlog(`server player record broken in : ${data.uuid} | new : ${data.onlinePlayers} | old : ${latestCount}`);
+
+    }
 }
+
 
 async function getPlayerCountLatest(knex, id) {
     let data = await knex("server_player_count").where("id", id).select("onlinePlayers");
     return data[0].onlinePlayers;
 }
 
+
 async function request(url) {
-    let data = '';
     try {
-    await axios.get(url)
-        .then(async function (response) {
-            data = response.status != 200 ? false : response.data;
-        });
+      const response = await axios.get(url);
+  
+      if (response.status === 200) {
+
+        sltlog(`request to : ${url} successful`);
+
+        return response.data;
+      } else {
+        sltlog(`request to : ${url}  not successful`);
+        return false;
+      }
+    } catch (error) {
+        sltlog(`request to : ${url} not successful`);
+      return false;
     }
-    catch(e) {
-        data = false;
-    }
-    return data
-}
+  }
 
 async function getServerID(knex, uuid) {
     let data = await knex("servers").where("uuid", uuid).select("id");
@@ -412,28 +428,6 @@ async function getServerUUID(knex, id) {
     return data[0].uuid; 
 }
 
-async function updateServerTable(knex) {
-    // hide all because servers can be removed from the list, if it is fetched it is shown
-    hideAll(knex);
-
-    let data = await request(process.env.SERVERS_URL);
-    
-    for (const el of data.servers) {
-        let server = await knex('servers').where('uuid', el.uuid).select('id');
-        let data2 = await request(`${process.env.SERVER_URL}?uuid=${el.uuid}&icons=true`);
-        
-        if(server.length == 1) {
-            updateServer(knex, data2, server[0].id);
-        }
-        else {
-            // if not found insert a new server and it's data
-            insertServer(knex, data2);
-            insertPlayer(knex, data2);
-            insertCount(knex, data2);
-        }
-    }
-}
-
 async function updateServer(knex, data, id) {
     await knex('servers').where("id", id).update({
             uuid: data.uuid,
@@ -451,17 +445,21 @@ async function updateServer(knex, data, id) {
             onlineMode: data.onlineMode,
             lastUpdated: moment().format('X')
     });
+
+    sltlog(`server updated : ${data.serverName} | uuid : ${data.uuid}`);
+
 }
 
 // check if a record is broken
 async function isRecord(knex, server_id, count) {
     let data = await knex("servers").where("id", server_id).select(["recordPlayerCount"]);
-   return data[0].recordPlayerCount < count ? true : false;
+   return count > data[0].recordPlayerCount ? true : false;
 }
 
 // hide all servers
 async function hideAll(knex) {
     await knex('servers').update({ isActive: false });
+    sltlog(`set all servers to hidden.`);
 }
 
 
@@ -483,9 +481,13 @@ module.exports = {
     getServerHistory,
     getGlobalHistory,
     getServerInformationByID,
-    serverData,
+    updateServer,
+    getServerName,
+    sltlog,
+    hideAll,
+    insertPlayer,
+    insertCount,
     request,
-    updateServerTable,
     getServerPlayers,
     purgeOldEntries,
     getPlayer,
