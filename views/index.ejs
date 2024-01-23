@@ -21,8 +21,9 @@
 <%- include('../partials/head') %>
 <title>Legacy Tracker</title>
 </head>
-<%- include('../partials/header') %>
-
+<body>
+<%- include('../partials/nav') %>
+<div class="c m">
 <div class="d-flex justify-content-between">
 <div class="item">
   <h2>Legacy Tracker</h2>
@@ -73,6 +74,8 @@
 </tbody>
 </table>
 </div>
+</div>
+<%- include('../partials/footer') %>
 
 <script src="assets/index.js"></script>
 <script>
@@ -83,4 +86,5 @@ $( document ).ready(function() {
 });
 
 </script>
-<%- include('../partials/footer') %>
+</body>
+</html>

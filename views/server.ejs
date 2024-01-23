@@ -6,7 +6,7 @@
 <meta name="language" content="English">
 <meta name="description" content="View <%= data.name %>'s information">
 <meta name="title" content="Legacy Server | <%= data.name %>">
-<meta name="theme-color" content="#131313">
+<meta name="theme-color" content="<%= data.color %>">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.0/css/font-awesome.min.css" />
 <link rel="stylesheet" href="../assets/style.css">
@@ -21,8 +21,9 @@
 <%- include('../partials/head') %>
 <title>Legacy Server | <%= data.name %></title>
 </head>
-<%- include('../partials/header') %>
-
+<body>
+<%- include('../partials/nav') %>
+<div class="c m">
 <div class="d-flex justify-content-between">
 <div class="item">
 <h2>Legacy Server</h2>
@@ -118,8 +119,10 @@
 </div>
 
 </div>
+</div>
+<%- include('../partials/footer') %>
 
 <script src="../assets/index.js"></script>
 <script>getServerGraph(); getPlayers();</script>
-<%- include('../partials/footer') %>
-
+</body>
+</html>
