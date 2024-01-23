@@ -11,7 +11,7 @@
 <meta name="theme-color" content="#131313">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.0/css/font-awesome.min.css" />
-<link rel="stylesheet" href="../assets/style.css">
+<link rel="stylesheet" href="../assets/style.css?v=<%= process.env.ASSETV %>">
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.6.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -75,7 +75,8 @@
 </div>
 </div>
 <%- include('../partials/footer') %>
-<script src="../assets/index.js?v=2"></script>
+<script src="../assets/skinview3d.bundle.js"></script>
+<script src="../assets/index.js?v=<%= process.env.ASSETV %>"></script>
 <script>
     // first and last date parses
     let first = $(".first");
@@ -90,10 +91,7 @@
     $(this).text(moment.unix($(this).text()).format("DD-MM-YYYY")).show();
     });
 
-</script>
-<script src="../assets/skinview3d.bundle.js"></script>
-<script>
-showPlayerModel($("#q_uuid").text());
+    showPlayerModel($("#q_uuid").text());
 </script>
 
 </body>

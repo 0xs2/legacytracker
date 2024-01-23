@@ -1,6 +1,6 @@
 {
   "name": "small-legacy-tracker",
-  "version": "1.0.1",
+  "version": "2.0.0",
   "description": "Small Legacy Minecraft Tracker",
   "main": "app.js",
   "scripts": {
