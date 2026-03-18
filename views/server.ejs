@@ -44,22 +44,30 @@
                         <label class="col-6 col-md-6" style="font-weight: bold;">Port</label>
                         <%= data.port %> 
                     </div>
-                <div class="card-title">
-                    <label class="col-6 col-md-6" style="font-weight: bold;">Version</label>
-                    <span class="badge badge-info"><%= data.version %></span>
-                </div>
-                <div class="card-title">
-                    <label class="col-6 col-md-6" style="font-weight: bold;">Authed</label>
-                    <span class="badge badge-<%= data.auth ? 'success' : 'danger' %>"><%= data.auth %></span>
-                </div>
-                <div class="card-title">
-                    <label class="col-6 col-md-6" style="font-weight: bold;">Online Mode</label>
-                    <span class="badge badge-<%= data.onlinemode  ? 'success' : 'danger' %>"><%= data.onlinemode %></span>
-                </div>
-                <div class="card-title">
-                    <label class="col-6 col-md-6" style="font-weight: bold;">Whitelisted</label>
-                    <span class="badge badge-<%= data.whitelisted ? 'success' : 'danger' %>"><%= data.whitelisted %></span>
-                </div>
+        <div class="card-title">
+            <label class="col-6 col-md-6" style="font-weight: bold;">Version</label>
+            <span class="badge badge-info"><%= data.version %></span>
+        </div>
+        <div class="card-title">
+            <label class="col-6 col-md-6" style="font-weight: bold;">Authed</label>
+            <span class="badge badge-<%= data.auth ? 'success' : 'danger' %>"><%= data.auth %></span>
+        </div>
+        <div class="card-title">
+            <label class="col-6 col-md-6" style="font-weight: bold;">Online Mode</label>
+            <span class="badge badge-<%= data.onlinemode  ? 'success' : 'danger' %>"><%= data.onlinemode %></span>
+        </div>
+        <div class="card-title">
+            <label class="col-6 col-md-6" style="font-weight: bold;">Whitelisted</label>
+            <span class="badge badge-<%= data.whitelisted ? 'success' : 'danger' %>"><%= data.whitelisted %></span>
+        </div>
+        <div class="card-title">
+            <label class="col-6 col-md-6" style="font-weight: bold;">Cached</label>
+            <span id="serverFirstPing">Loading...</span>
+        </div>
+        <div class="card-title">
+            <label class="col-6 col-md-6" style="font-weight: bold;">Last cached on</label>
+            <span id="serverLastPing">Loading...</span>
+        </div>
             </div>
         </div>
         <br>
@@ -114,8 +122,35 @@
     </div>
 <br>    
 <div class="card bg-dark">
-    <div class="card-header">Players Overtime</div>
-    <div class="card-body h-100 d-flex align-items-center justify-content-center"><div class="serv"><canvas id="myChart"></canvas></div></canvas></div>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Players Overtime</span>
+        <div class="btn-group btn-group-toggle server-chart-mode-switch" role="group">
+            <button type="button" class="btn btn-outline-light btn-sm server-chart-mode active" data-mode="players">Players</button>
+            <button type="button" class="btn btn-outline-light btn-sm server-chart-mode" data-mode="average">Average</button>
+        </div>
+    </div>
+    <div class="card-body h-100 d-flex align-items-center justify-content-center">
+        <div class="serv position-relative w-100">
+            <canvas id="serverHistoryChart"></canvas>
+            <div class="chart-empty-message small text-muted text-center" id="serverHistoryEmpty">Loading history...</div>
+        </div>
+    </div>
+</div>
+<br>
+<div class="card bg-dark">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span>Player joins over time</span>
+        <div class="btn-group btn-group-toggle join-chart-period" data-toggle="buttons">
+            <button type="button" class="btn btn-outline-light btn-sm join-chart-bucket active" data-bucket="week">Weekly</button>
+            <button type="button" class="btn btn-outline-light btn-sm join-chart-bucket" data-bucket="month">Monthly</button>
+        </div>
+    </div>
+    <div class="card-body h-100 d-flex align-items-center justify-content-center">
+        <div class="serv position-relative w-100">
+            <canvas id="joinChart"></canvas>
+            <div class="chart-empty-message small text-muted text-center" id="joinChartEmpty">Loading join data...</div>
+        </div>
+    </div>
 </div>
 </div>
 
@@ -124,6 +159,32 @@
 <%- include('../partials/footer') %>
 
 <script src="../assets/index.js?v=<%= process.env.ASSETV %>"></script>
-<script>getServerGraph(); getPlayers();</script>
+<script>
+  getServerGraph();
+  getPlayers();
+  initJoinChartControls();
+
+  (function() {
+    const firstPing = <%= data.firstPing ? data.firstPing : 0 %>;
+    const lastPing = <%= data.lastPing ? data.lastPing : 0 %>;
+
+    function formatTimestamp(id, timestamp, fallback) {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (timestamp && timestamp > 0) {
+        const formatted = moment.unix(timestamp).format("lll");
+        const relative = moment.unix(timestamp).fromNow();
+        el.textContent = `${formatted} (${relative})`;
+        el.title = relative;
+      } else {
+        el.textContent = fallback;
+        el.removeAttribute("title");
+      }
+    }
+
+    formatTimestamp("serverFirstPing", firstPing, "Unknown");
+    formatTimestamp("serverLastPing", lastPing, "Unknown");
+  })();
+</script>
 </body>
 </html>

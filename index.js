@@ -1,6 +1,7 @@
 const express = require("express");
 const compression = require("compression");
 const helmet = require("helmet");
+const cors = require("cors");
 const app = express({ strict: true });
 const knex = require('./functions/knex');
 const sortArray = require('sort-array');
@@ -11,6 +12,7 @@ require('dotenv').config({path: `./.env`});
 app.set("view engine", "ejs")
 
 app.use(compression());
+app.use(cors());
 app.use(express.static('public'));
 app.use(helmet.dnsPrefetchControl());
 app.use(helmet.frameguard());
@@ -38,6 +40,10 @@ app.get("/user/:user", async (req,res) => {
 
 app.get("/api/getServerHistory", async (req,res) => {
     res.json(await m.getServerHistory(req.query['id'], knex));
+});
+
+app.get("/api/getServerJoins", async (req,res) => {
+    res.json(await m.getServerJoinHistory(req.query['id'], knex, req.query['bucket']));
 });
 
 app.get("/api/getGlobalHistory", async (req,res) => {
@@ -74,4 +80,16 @@ app.all('*', (req, res) => {
     res.status(404).send("not found");
 });
 
-app.listen(process.env.PORT);
+async function startServer() {
+    try {
+        await m.createTables(knex);
+        console.log("database tables ensured");
+        console.log("started");
+        app.listen(process.env.PORT);
+    } catch (err) {
+        console.error("failed to ensure database tables:", err);
+        process.exit(1);
+    }
+}
+
+startServer();

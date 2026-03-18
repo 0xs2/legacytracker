@@ -2,14 +2,43 @@ const axios = require('axios');
 const randomColor = require('randomcolor');
 const moment = require('moment');
 
+let hasIsActiveColumnCache = null;
+
+async function ensureIsActiveColumn(knex) {
+    if (typeof hasIsActiveColumnCache === 'boolean') {
+        return hasIsActiveColumnCache;
+    }
+    try {
+        hasIsActiveColumnCache = await knex.schema.hasColumn('servers', 'isActive');
+    } catch (err) {
+        hasIsActiveColumnCache = false;
+    }
+    return hasIsActiveColumnCache;
+}
+
+async function getActiveServerQuery(knex) {
+    const query = knex('servers');
+    if (await ensureIsActiveColumn(knex)) {
+        query.where({ isActive: true });
+    }
+    return { query };
+}
+
+async function getActiveServerRecords(knex) {
+    const { query } = await getActiveServerQuery(knex);
+    return query.select(["id", "uuid"]);
+}
+
 async function getServerInformationByID(id, knex) {
-    let server = await knex('servers').where({"id": id, isActive: true}).select();
+    const { query: serverBuilder } = await getActiveServerQuery(knex);
+    let server = await serverBuilder.where({ id }).select();
     return server.length != 1 ? false : await getData(server[0], knex);
 }
 
 
 async function getServers(knex) {
-    let servers = await knex('servers').where("isActive", true).select();
+    const { query: serverBuilder } = await getActiveServerQuery(knex);
+    let servers = await serverBuilder.select();
 
     let builder = [];
 
@@ -47,7 +76,8 @@ async function updatePlayerStats(knex, server_id, player) {
 }
 
 async function getServerInformation(knex,sortArray) {
-    let servers = await knex('servers').where({isActive: true}).select();
+    const { query: serverBuilder } = await getActiveServerQuery(knex);
+    let servers = await serverBuilder.select();
     let data = [];
     for (const el of servers) {
         data.push(await getData(el,knex));
@@ -61,16 +91,18 @@ async function getServerInformation(knex,sortArray) {
 
 async function getStats(knex) {
     let p3 = await knex("server_players").count('player', {as: 'count'}).limit(1); 
-    let p = await knex("servers").where({isActive: true}).count('id', {as: 'count'}).limit(1); 
+    const { query: activeServerBuilder } = await getActiveServerQuery(knex);
+    let p = await activeServerBuilder.count('id', {as: 'count'}).limit(1); 
     let p2 = await getOnlinePlayers(knex, p[0].count);
     let p1 = await knex('server_player_count').select(["date", "id"]).orderBy('date', 'desc').limit(1);
+    const latestPing = Array.isArray(p1) && p1.length ? p1[0] : null;
 
     return {
         totalServers: p[0].count,
         totalUsers: p3[0].count,
         totalUsersOnline: p2,
-        totalPings: p1[0].id,
-        lastPinged: p1[0].date,
+        totalPings: latestPing ? latestPing.id : 0,
+        lastPinged: latestPing ? latestPing.date : 0,
         success: true
     };
 
@@ -104,6 +136,46 @@ async function getServerHistory(q, knex) {
     }
 }
 
+const JOIN_BUCKET_DEFINITIONS = {
+    week: 604800,
+    month: 2592000
+};
+
+async function getServerJoinHistory(serverId, knex, bucket = 'hour') {
+    if(!serverId) {
+        return {success: false};
+    }
+
+    const limit = parseInt(process.env.PLAYER_LIMIT, 10) || 200;
+    const bucketKey = bucket && JOIN_BUCKET_DEFINITIONS[bucket] ? bucket : 'week';
+    const bucketSeconds = JOIN_BUCKET_DEFINITIONS[bucketKey];
+    const data = await knex('server_players')
+        .where("server_id", serverId)
+        .select(["date"])
+        .orderBy("date", "desc")
+        .limit(limit);
+
+    if(data.length == 0) {
+        return {success: false};
+    }
+
+    const buckets = new Map();
+    data.forEach(entry => {
+        const timestamp = parseInt(entry.date, 10) || 0;
+        const bucket = Math.floor(timestamp / bucketSeconds) * bucketSeconds;
+        buckets.set(bucket, (buckets.get(bucket) || 0) + 1);
+    });
+
+    const sortedBuckets = Array.from(buckets.entries()).sort((a, b) => a[0] - b[0]);
+
+    return {
+        success: true,
+        timestamps: sortedBuckets.map(([timestamp]) => timestamp),
+        counts: sortedBuckets.map(([,count]) => count),
+        bucket: bucketKey
+    };
+}
+
 async function getData(el, knex) {
     let p2 = await knex("server_player_count").where("uuid", el.uuid).select("onlinePlayers").orderBy("date", "desc").limit(1); 
     let p3 = await knex("server_players").where("uuid", el.uuid).count('player', {as: 'count'}).limit(1); 
@@ -125,7 +197,9 @@ async function getData(el, knex) {
         online: p2[0].onlinePlayers,
         stored: p3[0].count,
         onlinemode: Boolean(el.onlineMode),
-        updated: el.lastUpdated
+        updated: el.lastUpdated,
+        firstPing: el.date,
+        lastPing: el.lastUpdated
     };
 }
 
@@ -195,7 +269,8 @@ async function getPlayersOnline(knex, id) {
 
 async function getGlobalHistory(knex) { 
     let final = [];
-    let data = await knex('servers').where("isActive", true).select();
+    const { query: serverBuilder } = await getActiveServerQuery(knex);
+    let data = await serverBuilder.select();
     let timestamps = [];
 
     for(const el of data) {
@@ -227,28 +302,35 @@ async function getGlobalHistory(knex) {
 async function createTables(knex) {
     try {
         // make the 'servers' table
-        await knex.schema.hasTable('servers').then(function (exists) {
-            if (!exists) {
-                return knex.schema.createTable('servers', function (t) {
-                    t.increments('id').primary();
-                    t.string('uuid', 50);
-                    t.text('serverName');
-                    t.text('serverDescription');
-                    t.text('serverIcon');
-                    t.text('serverVersion');
-                    t.string('serverIp', 50);
-                    t.string('numericalIP', 50);
-                    t.string('color', 50);
-                    t.integer('onlineMode', 10);
-                    t.integer('authenticated', 10);
-                    t.integer('whitelist', 10);
-                    t.integer('maxPlayers', 10);
-                    t.integer('serverPort', 5);
-                    t.integer('lastUpdated', 20);
-                    t.integer('date', 20);
+        const serverTableExists = await knex.schema.hasTable('servers');
+        if (!serverTableExists) {
+            await knex.schema.createTable('servers', function (t) {
+                t.increments('id').primary();
+                t.string('uuid', 50);
+                t.text('serverName');
+                t.text('serverDescription');
+                t.text('serverIcon');
+                t.text('serverVersion');
+                t.string('serverIp', 50);
+                t.string('numericalIP', 50);
+                t.string('color', 50);
+                t.integer('onlineMode', 10);
+                t.integer('authenticated', 10);
+                t.integer('whitelist', 10);
+                t.integer('maxPlayers', 10);
+                t.integer('serverPort', 5);
+                t.integer('lastUpdated', 20);
+                t.integer('date', 20);
+                t.integer('isActive', 1).defaultTo(1);
+            });
+        } else {
+            const hasIsActiveColumn = await knex.schema.hasColumn('servers', 'isActive');
+            if (!hasIsActiveColumn) {
+                await knex.schema.table('servers', function (t) {
+                    t.integer('isActive', 1).defaultTo(1);
                 });
             }
-        });
+        }
 
         // make the 'server_player_count' table
         await knex.schema.hasTable('server_player_count').then(function (exists) {
@@ -344,6 +426,7 @@ async function insertServer(knex, data) {
             maxPlayers: data.maxPlayers,
             serverIcon: data.serverIcon,
             color: randomColor(),
+            isActive: true,
             serverIP: data.serverIP,
             numericalIP: data.numericalIP,
             whitelist: data.whitelist,
@@ -479,6 +562,7 @@ module.exports = {
     getServerInformation, 
     getStats,
     getServerHistory,
+    getServerJoinHistory,
     getGlobalHistory,
     getServerInformationByID,
     updateServer,
@@ -486,12 +570,14 @@ module.exports = {
     sltlog,
     hideAll,
     insertPlayer,
+    insertServer,
     insertCount,
     request,
     getServerPlayers,
     purgeOldEntries,
     getPlayer,
     getServers,
+    getActiveServerRecords,
     serverTable,
     getPlayersOnline
 };

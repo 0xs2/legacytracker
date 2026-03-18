@@ -32,7 +32,7 @@ const promiseExecutionServer = async (m,knex) => {
 
 const promiseExecutionServerData = async (m,knex) => {
     // only update the 'active' servers
-    let servers = await knex('servers').where({isActive: true}).select();
+    let servers = await m.getActiveServerRecords(knex);
 
     for (const el of servers) {
         let data2 = await m.request(`${process.env.SERVER_URL}?uuid=${el.uuid}&icons=true`);
