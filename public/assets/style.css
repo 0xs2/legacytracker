@@ -40,10 +40,14 @@ body {
 
 #playerImg {
     display: none;
-    display: block;
     margin: 0 auto;
     margin-top: 20px;
     margin-bottom: 20px;
+}
+
+#player {
+    display: block;
+    margin: 20px auto;
 }
 
 .c {
@@ -68,6 +72,131 @@ body {
 
 .chart-controls .form-check {
     margin-right: 0.85rem;
+}
+
+.chart-inactive-toggle {
+    white-space: nowrap;
+}
+
+.chart-inactive-toggle .form-check-input {
+    cursor: pointer;
+}
+
+.inactive-server-row td {
+    opacity: 0.58;
+}
+
+.inactive-server-row .server-icon {
+    filter: grayscale(1);
+}
+
+.inactive-server-name {
+    color: var(--text-soft);
+    cursor: not-allowed;
+    text-decoration: none;
+}
+
+.version-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.version-group {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.version-group-summary {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    cursor: pointer;
+    list-style: none;
+}
+
+.version-current {
+    display: inline-flex;
+    align-items: center;
+    color: #f2f2f2;
+    font-size: 0.74rem;
+    line-height: 1.2;
+}
+
+.version-group-summary:hover .version-current {
+    color: #f2f2f2;
+}
+
+.version-group-summary::-webkit-details-marker {
+    display: none;
+}
+
+.version-group[open] .version-group-summary {
+    margin-right: 0.1rem;
+}
+
+.version-list-expanded {
+    display: inline-flex;
+}
+
+.version-more-count {
+    font-size: 0.62rem;
+    letter-spacing: 0.04em;
+    color: var(--text-soft);
+    background: rgba(255,255,255,0.08);
+    border: 1px solid var(--border-soft);
+    border-radius: 999px;
+    padding: 0.02rem 0.34rem;
+    line-height: 1.2;
+    transition: color 0.2s ease, border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.version-group[open] .version-more-count {
+    color: #ffffff;
+    border-color: rgba(255,255,255,0.45);
+    background: rgba(255,255,255,0.2);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.18);
+}
+
+.version-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.14rem 0.48rem;
+    border-radius: 999px;
+    border: 1px solid var(--border-soft);
+    background: rgba(255,255,255,0.04);
+    color: var(--text-soft);
+    font-size: 0.68rem;
+    line-height: 1.2;
+    cursor: help;
+    transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.version-chip:hover {
+    color: #ffffff;
+    border-color: rgba(255,255,255,0.52);
+    background: rgba(255,255,255,0.2);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.22);
+    transform: translateY(-1px);
+}
+
+.version-group-summary:hover .version-more-count {
+    color: #ffffff;
+    border-color: rgba(255,255,255,0.45);
+    background: rgba(255,255,255,0.2);
+    box-shadow: 0 0 0 1px rgba(255,255,255,0.18);
+}
+
+.version-group-summary .version-chip,
+.version-group-summary .version-chip:hover {
+    color: #f2f2f2;
+    border-color: rgba(255,255,255,0.2);
+    background: rgba(255,255,255,0.08);
+    box-shadow: none;
+    transform: none;
 }
 
 .table-tip {
@@ -166,10 +295,74 @@ a:hover, a:active {
     text-transform: uppercase;
 }
 
+.user-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.6rem;
+}
+
+.user-meta-item {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border-soft);
+    border-radius: 10px;
+    padding: 0.55rem 0.7rem;
+}
+
+.user-meta-label {
+    display: block;
+    font-size: 0.66rem;
+    letter-spacing: 0.04em;
+    color: var(--text-soft);
+    text-transform: uppercase;
+    margin-bottom: 0.2rem;
+}
+
+.user-servers-card {
+    border: 1px solid var(--border-soft);
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+.user-servers-wrap {
+    border-radius: 14px;
+}
+
+.user-servers-card thead th {
+    background: rgba(255,255,255,0.04);
+}
+
+.section-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-soft);
+    font-size: 0.78rem;
+    letter-spacing: 0.02em;
+    padding: 0.8rem 0.65rem 0;
+}
+
+.search-loading-indicator {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
 .description-cell {
     max-width: 460px;
     white-space: normal;
     word-break: break-word;
+}
+
+.description-toggle {
+    margin-left: 0.35rem;
+    font-size: 0.72rem;
+    vertical-align: baseline;
+    text-decoration: none;
+}
+
+.description-toggle:hover,
+.description-toggle:focus {
+    text-decoration: underline;
 }
 
 .icon-stack {
@@ -356,31 +549,39 @@ table {
 }
 
 .last-ping {
-    display: inline-flex;
-    align-items: center;
-    border-radius: 999px;
-    padding: 0.15rem 0.5rem;
-    font-size: 0.85rem;
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 700;
     letter-spacing: 0.02em;
-    background: rgba(255,255,255,0.04);
-    transition: transform 0.2s ease;
+    padding: 0.28rem 0.56rem;
+    vertical-align: middle;
+    border: 1px solid transparent;
 }
 
-.last-ping[data-freshness="fresh"] {
-    color: #90f0b8;
-    background: rgba(144,240,184,0.2);
-    box-shadow: 0 0 12px rgba(128,255,186,0.35);
+.last-ping.ping-neutral {
+    color: #c6ccd2;
+    background: rgba(198,204,210,0.12);
+    border-color: rgba(198,204,210,0.22);
+}
+
+.last-ping.ping-fresh {
+    color: #63c28f;
+    background: rgba(99,194,143,0.24);
+    border-color: rgba(99,194,143,0.38);
     animation: pingPulse 2s infinite ease-in-out;
+    box-shadow: 0 0 10px rgba(99,194,143,0.22);
 }
 
-.last-ping[data-freshness="warning"] {
-    color: #f7d35f;
-    background: rgba(247,211,95,0.18);
+.last-ping.ping-warning {
+    color: #c8a145;
+    background: rgba(200,161,69,0.24);
+    border-color: rgba(200,161,69,0.36);
 }
 
-.last-ping[data-freshness="stale"] {
-    color: #f4815f;
-    background: rgba(244,129,95,0.15);
+.last-ping.ping-stale {
+    color: #cb6f56;
+    background: rgba(203,111,86,0.24);
+    border-color: rgba(203,111,86,0.36);
 }
 
 @keyframes pingPulse {

@@ -13,6 +13,44 @@ const sortConfig = {
   unique: { attr: 'data-unique', type: 'number' }
 };
 let sortState = { key: 'online', direction: 'desc' };
+let showInactiveRows = false;
+
+function toServerKey(id) {
+  return String(id);
+}
+
+function parseIsActiveValue(value) {
+  if (value === undefined || value === null) {
+    return true;
+  }
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "number") {
+    return value !== 0;
+  }
+  const lowered = String(value).trim().toLowerCase();
+  if (!lowered || lowered === "1" || lowered === "true" || lowered === "yes" || lowered === "on" || lowered === "active") {
+    return true;
+  }
+  if (lowered === "0" || lowered === "false" || lowered === "no" || lowered === "off" || lowered === "inactive" || lowered === "dead") {
+    return false;
+  }
+  const numeric = Number(lowered);
+  if (!Number.isNaN(numeric)) {
+    return numeric !== 0;
+  }
+  return Boolean(value);
+}
+
+function normalizeUnixTimestamp(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return null;
+  }
+  // Accept both seconds and milliseconds.
+  return parsed > 1e12 ? Math.floor(parsed / 1000) : Math.floor(parsed);
+}
 
 let options = {
   tooltips: {
@@ -151,22 +189,31 @@ function showToast(message, options = {}) {
   const body = document.createElement("div");
   body.className = `toast-body ${options.bodyClass || ""}`.trim();
   body.textContent = message;
-  const closeButton = document.createElement("button");
-  closeButton.type = "button";
-  closeButton.className = "btn-close me-2 m-auto";
-  closeButton.setAttribute("data-bs-dismiss", "toast");
-  closeButton.setAttribute("aria-label", "Close");
+  wrapper.appendChild(body);
 
-  if (variant && variant !== "light" && variant !== "warning") {
-    closeButton.classList.add("btn-close-white");
+  const showClose = options.showClose !== false;
+  if (showClose) {
+    const closeButton = document.createElement("button");
+    closeButton.type = "button";
+    closeButton.className = "btn-close me-2 m-auto";
+    closeButton.setAttribute("data-bs-dismiss", "toast");
+    closeButton.setAttribute("aria-label", "Close");
+
+    if (variant && variant !== "light" && variant !== "warning") {
+      closeButton.classList.add("btn-close-white");
+    }
+
+    wrapper.appendChild(closeButton);
   }
 
-  wrapper.appendChild(body);
-  wrapper.appendChild(closeButton);
   toastEl.appendChild(wrapper);
   container.appendChild(toastEl);
 
-  const toast = new bootstrap.Toast(toastEl, { delay: 5000, autohide: true });
+  const delay = Number(options.delay);
+  const toast = new bootstrap.Toast(toastEl, {
+    delay: Number.isFinite(delay) && delay >= 0 ? delay : 1000,
+    autohide: true
+  });
   toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
   toast.show();
 }
@@ -245,30 +292,49 @@ function updateServerHistoryTitle() {
   titleEl.text(serverChartMode === "average" ? averageTitle : rawTitle);
 }
 
+function applyLastPingBadgeClass(lastSpan, state) {
+  if (!lastSpan || !lastSpan.length) {
+    return;
+  }
+  lastSpan.removeClass("ping-fresh ping-warning ping-stale ping-neutral");
+  if (state === "fresh") {
+    lastSpan.addClass("ping-fresh");
+  } else if (state === "warning") {
+    lastSpan.addClass("ping-warning");
+  } else if (state === "stale") {
+    lastSpan.addClass("ping-stale");
+  } else {
+    lastSpan.addClass("ping-neutral");
+  }
+}
+
 function refreshLastPingLabels() {
   serverData.forEach(server => {
     const row = $(`tr.item-${server.id}`);
     const lastSpan = $(`#lastPing-${server.id}`);
     const firstSpan = $(`#firstPing-${server.id}`);
-    const lastTimestamp = parseInt(row.attr("data-last-ping"), 10);
-    const firstTimestamp = parseInt(row.attr("data-first-ping"), 10);
+    const lastTimestamp = normalizeUnixTimestamp(row.attr("data-last-ping"));
+    const firstTimestamp = normalizeUnixTimestamp(row.attr("data-first-ping"));
+    const nowUnix = moment().unix();
 
     const lastTimeSpan = $(`#lastPingTime-${server.id}`);
 
-    if (!isNaN(lastTimestamp) && lastTimestamp > 0) {
+    if (lastTimestamp && lastTimestamp <= nowUnix + 60) {
       const formatted = moment.unix(lastTimestamp).fromNow();
       lastSpan.text(formatted).attr("title", moment.unix(lastTimestamp).format("lll"));
-      const age = Math.max(0, Math.floor(moment().unix() - lastTimestamp));
+      const age = Math.max(0, Math.floor(nowUnix - lastTimestamp));
       const state = age <= 300 ? 'fresh' : age <= 1800 ? 'warning' : 'stale';
       lastSpan.attr("data-freshness", state);
+      applyLastPingBadgeClass(lastSpan, state);
       lastTimeSpan.text(moment.unix(lastTimestamp).format("lll"));
     } else {
       lastSpan.text("n/a").attr("title", "");
       lastSpan.removeAttr("data-freshness");
+      applyLastPingBadgeClass(lastSpan, null);
       lastTimeSpan.text("");
     }
 
-    if (!isNaN(firstTimestamp) && firstTimestamp > 0) {
+    if (firstTimestamp && firstTimestamp <= nowUnix + 60) {
       firstSpan.text(`Added ${moment.unix(firstTimestamp).fromNow()}`).attr("title", moment.unix(firstTimestamp).format("lll"));
     } else {
       firstSpan.text("");
@@ -277,18 +343,32 @@ function refreshLastPingLabels() {
 }
 
 function updateTableVisibility() {
-  const visibleIds = new Set();
+  const showInactiveServers = showInactiveRows;
+  const hasChartSelection = activeChartIds.size > 0;
 
   serverData.forEach(server => {
-    const isActive = activeChartIds.has(server.id);
     const row = $(`tr.item-${server.id}`);
-    row.toggle(isActive);
-    if (isActive) {
-      visibleIds.add(server.id);
-    }
-  });
+    const isServerActive = parseIsActiveValue(row.attr("data-is-active") ?? server.isActive);
+    const isSelectedInChart = activeChartIds.has(toServerKey(server.id));
+    const shouldShow = isServerActive ? (hasChartSelection ? isSelectedInChart : true) : showInactiveServers;
 
-  return visibleIds;
+    row.toggle(shouldShow);
+  });
+}
+
+function initTableVisibilityMode() {
+  const toggle = $("#showInactiveToggle");
+  if (!toggle.length) {
+    return;
+  }
+
+  showInactiveRows = toggle.is(":checked");
+  updateTableVisibility();
+
+  toggle.on("change", function () {
+    showInactiveRows = $(this).is(":checked");
+    updateTableVisibility();
+  });
 }
 
 function attachSortHandlers() {
@@ -328,6 +408,12 @@ function sortTableBy(key, options = {}) {
   const rows = tbody.children("tr").get();
 
   rows.sort((a, b) => {
+    const rowAIsActive = parseIsActiveValue(a.getAttribute("data-is-active"));
+    const rowBIsActive = parseIsActiveValue(b.getAttribute("data-is-active"));
+    if (rowAIsActive !== rowBIsActive) {
+      return rowAIsActive ? -1 : 1;
+    }
+
     const valA = a.getAttribute(config.attr) || "";
     const valB = b.getAttribute(config.attr) || "";
 
@@ -398,17 +484,18 @@ function initChartToggles(servers) {
 
   serversSortedByOnline.forEach(server => {
     const sanitized = server.name ? server.name.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : server.id;
+    const serverKey = toServerKey(server.id);
     container.append(`
       <div class="form-check form-check-inline">
-        <input class="form-check-input chart-toggle" type="checkbox" id="chartToggle-${server.id}" data-id="${server.id}" checked>
-        <label class="form-check-label text-truncate" for="chartToggle-${server.id}">${sanitized}</label>
+        <input class="form-check-input chart-toggle" type="checkbox" id="chartToggle-${serverKey}" data-id="${serverKey}" checked>
+        <label class="form-check-label text-truncate" for="chartToggle-${serverKey}">${sanitized}</label>
       </div>
     `);
-    activeChartIds.add(server.id);
+    activeChartIds.add(serverKey);
   });
 
   container.on("change", ".chart-toggle", function () {
-    const id = Number($(this).data("id"));
+    const id = toServerKey($(this).data("id"));
     if ($(this).is(":checked")) {
       activeChartIds.add(id);
     } else {
@@ -432,11 +519,11 @@ function rebuildChart() {
     return;
   }
 
-  const visibleIds = updateTableVisibility();
+  updateTableVisibility();
   const datasets = [];
 
   globalGraphState.serverList.forEach(server => {
-    if (!visibleIds.has(server.id) || !activeChartIds.has(server.id)) {
+    if (!activeChartIds.has(toServerKey(server.id))) {
       return;
     }
     const dataset = globalGraphState.datasetMap[server.id];
@@ -475,8 +562,14 @@ function renderChart(datasets) {
   }
 
   if (!datasets.length) {
+    let emptyMessage = "No servers selected for the chart.";
+    if (!globalGraphState || !Array.isArray(globalGraphState.serverList) || !globalGraphState.serverList.length) {
+      emptyMessage = "No active servers available for chart data.";
+    } else if (activeChartIds.size > 0) {
+      emptyMessage = "No chart data available for selected servers.";
+    }
     $("#myChart").hide();
-    messageEl.removeClass("d-none").text("No servers selected for the chart.");
+    messageEl.removeClass("d-none").text(emptyMessage);
     return;
   }
 
@@ -864,18 +957,59 @@ clipboard.on('success', function (e) {
   }
 });
 
+function resetSearchFormState(clearValue = false) {
+  const form = $("#searchForm");
+  const searchInput = $("#search");
+  const loadingIndicator = $("#searchLoadingIndicator");
+
+  form.data("loading", false);
+  searchInput.prop("disabled", false);
+  loadingIndicator.addClass("d-none");
+
+  if (clearValue) {
+    searchInput.val("");
+  }
+}
+
+$(window).on("pageshow", function () {
+  resetSearchFormState(true);
+});
+
 $("#searchForm").on("submit", function(event){
   event.preventDefault();
-  var query = $("#search").val();
+  const form = $("#searchForm");
+  const searchInput = $("#search");
+  const loadingIndicator = $("#searchLoadingIndicator");
+
+  if (form.data("loading")) {
+    return;
+  }
+
+  const setSearchLoading = (isLoading) => {
+    form.data("loading", isLoading);
+    searchInput.prop("disabled", isLoading);
+    loadingIndicator.toggleClass("d-none", !isLoading);
+  };
+
+  var query = searchInput.val().trim();
+  if (!query) {
+    resetSearchFormState(false);
+    return;
+  }
+
+  setSearchLoading(true);
   $.ajax({
     url:"../api/getPlayer",
     data: {player: query},
     method: "GET",
     success: function(data){
       if(!data.success) {
+        setSearchLoading(false);
         showToast("This user was not found in any servers.", {
           variant: "dark",
-          bodyClass: "text-danger"
+          bodyClass: "text-danger",
+          delay: 1000,
+          showClose: false
         });
       }
       else {
@@ -883,6 +1017,7 @@ $("#searchForm").on("submit", function(event){
       }
     },
     error: function() {
+      setSearchLoading(false);
       showToast("Unable to search right now. Please try again.");
     }
   });
@@ -912,7 +1047,75 @@ function getPlayers() {
   });
 }
 
-function showPlayerModel(uuid) {
+function normalizeUuid(uuid) {
+  return (uuid || "").toString().trim();
+}
+
+async function loadCapeFromUrl(skinViewer, url) {
+  if (!skinViewer || !url) {
+    return false;
+  }
+
+  try {
+    await Promise.resolve(skinViewer.loadCape(url, { makeVisible: true }));
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
+
+async function getCapesDevStillImageUrl(playerName) {
+  const normalizedPlayerName = (playerName || "").toString().trim();
+  if (!normalizedPlayerName) {
+    return null;
+  }
+
+  try {
+    const response = await fetch(`https://api.capes.dev/load/${encodeURIComponent(normalizedPlayerName)}/minecraft`, {
+      cache: "no-store"
+    });
+    if (!response.ok) {
+      return null;
+    }
+
+    const payload = await response.json();
+    const nestedStillImageUrl = payload && payload.minecraft && payload.minecraft.stillImageUrl
+      ? payload.minecraft.stillImageUrl
+      : null;
+    const topLevelStillImageUrl = payload && payload.stillImageUrl
+      ? payload.stillImageUrl
+      : null;
+    const fallbackCapeUrl = payload && payload.capeUrl
+      ? payload.capeUrl
+      : null;
+    return nestedStillImageUrl || topLevelStillImageUrl || fallbackCapeUrl || null;
+  } catch (error) {
+    return null;
+  }
+}
+
+async function loadMojangCapeFromCapesDev(skinViewer, playerName, isValidAccount) {
+  if (!skinViewer || !isValidAccount) {
+    return false;
+  }
+
+  const stillImageUrl = await getCapesDevStillImageUrl(playerName);
+  if (!stillImageUrl) {
+    return false;
+  }
+
+  return loadCapeFromUrl(skinViewer, stillImageUrl);
+}
+
+async function loadPreferredCape(skinViewer, uuid, playerName, isValidAccount) {
+  if (!skinViewer) {
+    return;
+  }
+
+  await loadMojangCapeFromCapesDev(skinViewer, playerName, isValidAccount);
+}
+
+function showPlayerModel(uuid, playerName = "", isValidAccount = false) {
   if (checkWebGLSupport()) {
     let skinViewer = new skinview3d.SkinViewer({
       canvas: document.getElementById("player"),
@@ -927,6 +1130,7 @@ function showPlayerModel(uuid) {
     skinViewer.animation = new skinview3d.WalkingAnimation();
     skinViewer.animation.headBobbing = false;
     skinViewer.animation.speed = 0.5;
+    loadPreferredCape(skinViewer, uuid, playerName, isValidAccount);
   } else {
     $("#player").hide()
     $("#playerImg").attr({
@@ -972,9 +1176,34 @@ function initChartModeButtons() {
   });
 }
 
+function initDescriptionToggles() {
+  $("#serversTable").on("click", ".description-toggle", function (event) {
+    event.preventDefault();
+
+    const button = $(this);
+    const cell = button.closest(".description-cell");
+    const preview = cell.find(".description-preview");
+    const full = cell.find(".description-full");
+    const isExpanded = !full.hasClass("d-none");
+
+    if (isExpanded) {
+      full.addClass("d-none");
+      preview.removeClass("d-none");
+      button.text("Show more");
+    } else {
+      full.removeClass("d-none");
+      preview.addClass("d-none");
+      button.text("Show less");
+    }
+  });
+}
+
 attachSortHandlers();
 initTooltips();
 updateGlobalChartTitle();
 updateServerHistoryTitle();
+initTableVisibilityMode();
 initChartModeButtons();
 initServerChartModeSwitch();
+initDescriptionToggles();
+setInterval(refreshLastPingLabels, 30000);

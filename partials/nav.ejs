@@ -11,8 +11,12 @@
     </ul>
     <ul class="navbar-nav">
       <li class="nav-item">
-        <form class="d-flex" method="" id="searchForm">
-          <input type="text" id="search" class="form-control bg-dark" placeholder="Search Player" required>
+        <form class="d-flex align-items-center gap-2" method="" id="searchForm">
+          <input type="text" id="search" class="form-control bg-dark" placeholder="Search Player" autocomplete="off" required>
+          <span id="searchLoadingIndicator" class="small text-muted d-none search-loading-indicator">
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            Searching...
+          </span>
         </form>
       </li>
   </ul>

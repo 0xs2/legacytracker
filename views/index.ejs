@@ -33,6 +33,16 @@
 
   <div class="stats mb-3"><p class="text-muted mb-0">Loading statistics...</p></div>
 
+
+  <div class="chart-mode-switch d-flex align-items-center flex-wrap mb-3">
+    <span class="text-muted me-2 small">View metric:</span>
+    <div class="btn-group" role="group">
+      <button type="button" class="btn btn-outline-light btn-sm chart-mode-btn active" data-mode="players">Raw player count</button>
+      <button type="button" class="btn btn-outline-light btn-sm chart-mode-btn" data-mode="average">Player averages</button>
+    </div>
+  </div>
+
+
   <div class="chart mb-4">
     <div class="card bg-dark">
       <div class="card-header">
@@ -46,17 +56,11 @@
       </div>
     </div>
   </div>
-
-  <div class="chart-mode-switch d-flex align-items-center flex-wrap mb-3">
-    <span class="text-muted me-2 small">View metric:</span>
-    <div class="btn-group" role="group">
-      <button type="button" class="btn btn-outline-light btn-sm chart-mode-btn active" data-mode="players">Raw player count</button>
-      <button type="button" class="btn btn-outline-light btn-sm chart-mode-btn" data-mode="average">Player averages</button>
-    </div>
-  </div>
-
   <div class="chart-controls d-flex flex-wrap mb-3 align-items-center"><span class="small text-muted">Loading server controls...</span></div>
-
+    <div class="pb-2 form-check form-check-inline ms-3 mb-0 chart-inactive-toggle">
+      <input class="form-check-input" type="checkbox" id="showInactiveToggle">
+      <label class="form-check-label small text-muted" for="showInactiveToggle">Show inactive</label>
+    </div>
   <div class="table-responsive-lg">
     <table id="serversTable" class="table table-bordered table-compact mb-0">
       <thead>
@@ -74,8 +78,9 @@
       </thead>
       <tbody>
         <% data.forEach(element => { %>
-          <tr class="item-<%= element.id %>"
+          <tr class="item-<%= element.id %> <%= element.isActive ? '' : 'inactive-server-row' %>"
               data-id="<%= element.id %>"
+              data-is-active="<%= element.isActive ? '1' : '0' %>"
               data-name="<%= element.name %>"
               data-ip="<%= element.ip %>"
               data-version="<%= element.version %>"
@@ -90,15 +95,53 @@
                 <img src="data:image/png;base64,<%= element.icon ? element.icon : defaultIcon %>" alt="<%= element.name %>" class="server-icon" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<%= element.name %>">
               </div>
             </td>
-            <td class="cl-<%= element.id %>"><a href="server/<%= element.id %>"><%= element.name %></a></td>
             <td class="cl-<%= element.id %>">
-              <%= element.ip %>&ensp;<span class="cb-<%= element.id %> fa fa-clipboard copybtn" data-clipboard-text="<%= element.ip %>"></span>
+              <% if (element.isActive) { %>
+                <a href="server/<%= element.id %>"><%= element.name %></a>
+              <% } else { %>
+                <span class="inactive-server-name" title="Inactive/dead server"><%= element.name %></span>
+              <% } %>
             </td>
-            <td><%= element.version %></td>
-            <td class="description-cell"><%= element.desc %></td>
+            <td class="cl-<%= element.id %>">
+              <%= element.ip %>
+              <% if (element.isActive) { %>
+                &ensp;<span class="cb-<%= element.id %> fa fa-clipboard copybtn" data-clipboard-text="<%= element.ip %>"></span>
+              <% } %>
+            </td>
+            <td>
+              <% if (Array.isArray(element.versionDetails) && element.versionDetails.length > 1) { %>
+                <details class="version-group">
+                  <summary class="version-group-summary">
+                    <span class="version-current"><%= element.versionDetails[0].version %></span>
+                    <span class="version-more-count">+<%= element.versionDetails.length - 1 %></span>
+                  </summary>
+                  <div class="version-list version-list-expanded">
+                    <% element.versionDetails.slice(1).forEach((versionInfo) => { %>
+                      <span class="version-chip" data-bs-toggle="tooltip" data-bs-placement="bottom" title="<%= versionInfo.lastCachedLabel %>">
+                        <span class="version-chip-text"><%= versionInfo.version %></span>
+                      </span>
+                    <% }) %>
+                  </div>
+                </details>
+              <% } else if (Array.isArray(element.versionDetails) && element.versionDetails.length === 1) { %>
+                <span class="version-current"><%= element.versionDetails[0].version %></span>
+              <% } else { %>
+                <span class="version-current"><%= element.version %></span>
+              <% } %>
+            </td>
+            <td class="description-cell">
+              <% const descText = (element.desc || '').toString(); %>
+              <% if (descText.length > 120) { %>
+                <span class="description-preview"><%= `${descText.slice(0, 120).trimEnd()}...` %></span>
+                <span class="description-full d-none"><%= descText %></span>
+                <button type="button" class="btn btn-link btn-sm p-0 align-baseline description-toggle">Show more</button>
+              <% } else { %>
+                <%= descText %>
+              <% } %>
+            </td>
             <td class="online-value"><%= element.online %></td>
             <td class="last-ping-cell">
-              <span id="lastPing-<%= element.id %>" class="last-ping text-bold"></span><br>
+              <span id="lastPing-<%= element.id %>" class="last-ping badge rounded-pill ping-neutral"></span><br>
               <small class="text-muted last-ping-time" id="lastPingTime-<%= element.id %>"></small>
             </td>
             <td><%= element.peak %></td>
@@ -112,8 +155,16 @@
 
 <%- include('../partials/footer') %>
 
+<%
+  const legacyServerDataJson = JSON.stringify(data)
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
+%>
 <script>
-  window.legacyServerData = <%- JSON.stringify(data) %>;
+  window.legacyServerData = <%- legacyServerDataJson %>;
 </script>
 <script src="assets/index.js?v=<%= process.env.ASSETV %>"></script>
 <script>

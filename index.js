@@ -25,7 +25,7 @@ app.use(helmet.referrerPolicy());
 app.use(helmet.xssFilter());
 
 app.get("/", async (req,res) => {
-    res.render("index", {data: await m.getServerInformation(knex,sortArray)});
+    res.render("index", {data: await m.getServerInformation(knex,sortArray, { includeInactive: true })});
 });
 
 app.get("/server/:id", async (req,res) => {
