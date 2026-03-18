@@ -1,5 +1,3 @@
-$('[data-toggle="tooltip"]').tooltip();
-
 const legacyDataProvided = typeof legacyServerData !== "undefined" ? legacyServerData : [];
 const serverData = Array.isArray(legacyDataProvided) ? legacyDataProvided : [];
 let globalChart;
@@ -9,7 +7,7 @@ const sortConfig = {
   name: { attr: 'data-name', type: 'string' },
   ip: { attr: 'data-ip', type: 'string' },
   version: { attr: 'data-version', type: 'string' },
-  online: { attr: 'data-online', type: 'number' },
+  online: { attr: 'data-online-sort', type: 'number' },
   lastPing: { attr: 'data-last-ping', type: 'number' },
   peak: { attr: 'data-peak', type: 'number' },
   unique: { attr: 'data-unique', type: 'number' }
@@ -100,15 +98,152 @@ let serverHistoryChart = null;
 let serverHistoryData = null;
 let serverChartMode = 'players';
 let joinChart = null;
-const AVERAGE_LINE_COLOR = '#4BC0C0';
-const SERVER_MOVING_AVERAGE_WINDOW = 5;
+const AVG_DECIMALS = 2;
+const MOVING_AVERAGE_WINDOW = 5;
 const JOIN_BUCKET_LABELS = {
   week: 'Weekly',
   month: 'Monthly'
 };
 const DEFAULT_JOIN_BUCKET = 'week';
 let joinBucket = null;
-const SMOOTHING_WINDOW = 5;
+
+function initTooltips(scope = document) {
+  if (typeof bootstrap === "undefined" || !bootstrap.Tooltip) {
+    return;
+  }
+  const targets = scope.querySelectorAll('[data-bs-toggle="tooltip"]');
+  targets.forEach((el) => {
+    if (!bootstrap.Tooltip.getInstance(el)) {
+      new bootstrap.Tooltip(el);
+    }
+  });
+}
+
+function getToastContainer() {
+  let container = document.getElementById("toastContainer");
+  if (container) {
+    return container;
+  }
+  container = document.createElement("div");
+  container.id = "toastContainer";
+  container.className = "toast-container position-fixed top-0 end-0 p-3";
+  document.body.appendChild(container);
+  return container;
+}
+
+function showToast(message, options = {}) {
+  if (typeof bootstrap === "undefined" || !bootstrap.Toast) {
+    return;
+  }
+
+  const variant = options.variant || "danger";
+  const container = getToastContainer();
+  const toastEl = document.createElement("div");
+  const variantClass = variant ? `text-bg-${variant}` : "";
+  const extraToastClass = options.toastClass || "";
+  toastEl.className = `toast align-items-center border-0 ${variantClass} ${extraToastClass}`.trim();
+  toastEl.setAttribute("role", "alert");
+  toastEl.setAttribute("aria-live", "assertive");
+  toastEl.setAttribute("aria-atomic", "true");
+
+  const wrapper = document.createElement("div");
+  wrapper.className = "d-flex";
+  const body = document.createElement("div");
+  body.className = `toast-body ${options.bodyClass || ""}`.trim();
+  body.textContent = message;
+  const closeButton = document.createElement("button");
+  closeButton.type = "button";
+  closeButton.className = "btn-close me-2 m-auto";
+  closeButton.setAttribute("data-bs-dismiss", "toast");
+  closeButton.setAttribute("aria-label", "Close");
+
+  if (variant && variant !== "light" && variant !== "warning") {
+    closeButton.classList.add("btn-close-white");
+  }
+
+  wrapper.appendChild(body);
+  wrapper.appendChild(closeButton);
+  toastEl.appendChild(wrapper);
+  container.appendChild(toastEl);
+
+  const toast = new bootstrap.Toast(toastEl, { delay: 5000, autohide: true });
+  toastEl.addEventListener("hidden.bs.toast", () => toastEl.remove());
+  toast.show();
+}
+
+function showCopyTooltip(target, message = "Copied to Clipboard") {
+  if (!target || typeof bootstrap === "undefined" || !bootstrap.Tooltip) {
+    return;
+  }
+
+  const existing = bootstrap.Tooltip.getInstance(target);
+  if (existing) {
+    existing.dispose();
+  }
+
+  target.setAttribute("data-bs-toggle", "tooltip");
+  target.setAttribute("data-bs-placement", "bottom");
+  target.setAttribute("data-bs-title", message);
+
+  const tooltip = new bootstrap.Tooltip(target, {
+    trigger: "manual",
+    placement: "bottom",
+    title: message
+  });
+
+  tooltip.show();
+  setTimeout(() => {
+    tooltip.hide();
+    tooltip.dispose();
+  }, 1000);
+}
+
+function calculateAverage(values) {
+  if (!Array.isArray(values) || !values.length) {
+    return 0;
+  }
+  const total = values.reduce((sum, value) => sum + (Number(value) || 0), 0);
+  return total / values.length;
+}
+
+function getAverageSeries(values, windowSize = MOVING_AVERAGE_WINDOW) {
+  if (!Array.isArray(values) || !values.length) {
+    return [];
+  }
+
+  const result = [];
+  for (let i = 0; i < values.length; i++) {
+    const start = Math.max(0, i - windowSize + 1);
+    const windowSlice = values.slice(start, i + 1);
+    const sum = windowSlice.reduce((total, value) => total + (Number(value) || 0), 0);
+    result.push(sum / windowSlice.length);
+  }
+  return result;
+}
+
+function formatAverage(value) {
+  return Number(value || 0).toFixed(AVG_DECIMALS);
+}
+
+function updateGlobalChartTitle() {
+  const titleEl = $("#globalChartTitle");
+  if (!titleEl.length) {
+    return;
+  }
+  const rawTitle = titleEl.data("raw-title") || "Players Over Time";
+  const averageTitle = titleEl.data("average-title") || "Average Players Over Time";
+  titleEl.text(chartMode === "average" ? averageTitle : rawTitle);
+}
+
+function updateServerHistoryTitle() {
+  const titleEl = $("#serverHistoryTitle");
+  if (!titleEl.length) {
+    return;
+  }
+  const rawTitle = titleEl.data("raw-title") || "Players Over Time";
+  const averageTitle = titleEl.data("average-title") || "Average Players Over Time";
+  titleEl.text(serverChartMode === "average" ? averageTitle : rawTitle);
+}
 
 function refreshLastPingLabels() {
   serverData.forEach(server => {
@@ -219,8 +354,28 @@ function sortTableBy(key, options = {}) {
 }
 
 function resetSortState() {
-  sortState = { key: 'online', direction: 'desc' };
-  sortTableBy(sortState.key, { direction: 'desc', skipRebuild: true });
+  const defaultDirection = chartMode === 'average' ? 'asc' : 'desc';
+  sortState = { key: 'online', direction: defaultDirection };
+  sortTableBy(sortState.key, { direction: defaultDirection, skipRebuild: true });
+}
+
+function syncOnlineColumnWithChartMode() {
+  const isAverageMode = chartMode === "average";
+  const headerLabel = $(".online-header-label");
+  if (headerLabel.length) {
+    headerLabel.text(isAverageMode ? "Avg" : "Online");
+  }
+
+  $("#serversTable tbody tr").each(function () {
+    const row = $(this);
+    const onlineValue = Number(row.attr("data-online-live")) || 0;
+    const averageValue = Number(row.attr("data-average")) || 0;
+    const sortValue = isAverageMode ? averageValue : onlineValue;
+    const displayValue = isAverageMode ? formatAverage(averageValue) : onlineValue.toLocaleString();
+
+    row.attr("data-online-sort", sortValue);
+    row.find(".online-value").text(displayValue);
+  });
 }
 
 function initChartToggles(servers) {
@@ -228,7 +383,20 @@ function initChartToggles(servers) {
   container.empty().off("change", ".chart-toggle");
   activeChartIds = new Set();
 
-  servers.forEach(server => {
+  const serversSortedByOnline = [...servers].sort((a, b) => {
+    const aValues = Array.isArray(a.cnt) ? a.cnt : [];
+    const bValues = Array.isArray(b.cnt) ? b.cnt : [];
+    const aOnline = Number(aValues[aValues.length - 1]) || 0;
+    const bOnline = Number(bValues[bValues.length - 1]) || 0;
+    if (bOnline !== aOnline) {
+      return bOnline - aOnline;
+    }
+    const aName = (a.name || "").toString();
+    const bName = (b.name || "").toString();
+    return aName.localeCompare(bName, undefined, { sensitivity: "base" });
+  });
+
+  serversSortedByOnline.forEach(server => {
     const sanitized = server.name ? server.name.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;') : server.id;
     container.append(`
       <div class="form-check form-check-inline">
@@ -278,10 +446,11 @@ function rebuildChart() {
 
     const color = dataset.color || "#ffffff";
     const values = Array.isArray(dataset.cnt) ? dataset.cnt.map(value => Number(value) || 0) : [];
-    const chartValues = chartMode === 'average' ? smoothValues(values, SMOOTHING_WINDOW) : values;
+    const chartValues = chartMode === 'average' ? getAverageSeries(values) : values;
+    const averageValue = calculateAverage(values);
 
     datasets.push({
-      label: server.name,
+      label: chartMode === "average" ? `${server.name} (avg ${formatAverage(averageValue)})` : server.name,
       data: chartValues,
       borderWidth: 2,
       fill: false,
@@ -326,6 +495,7 @@ function renderChart(datasets) {
 
 
 function getStats() {
+  $(".stats").html(`<p class="text-muted mb-0">Loading statistics...</p>`);
   $.ajax({
     url:"api/getStats",
     method: "GET",
@@ -334,13 +504,30 @@ function getStats() {
         $(".stats").html(`<p class="text-danger">Error fetching statistics</p>`);
       }
       else {
-        $(".stats").html(`<p><div class="d-flex justify-content-between"><div class="item">Servers: <strong class="text-bolder text-success">${data.totalServers.toLocaleString()}</strong>, Online Users: <strong class="text-bolder text-success">${data.totalUsersOnline.toLocaleString()}</strong>, Unique Users: <strong class="text-bolder text-success">${data.totalUsers.toLocaleString()}</strong></div><div class="item">Pings: <strong class="text-bolder text-danger">${data.totalPings.toLocaleString()}</strong></div></div></p>`);
+        $(".stats").html(`
+          <div class="stats-summary d-flex justify-content-between align-items-start">
+            <div class="item stats-main">
+              Servers: <strong class="text-bolder text-success">${data.totalServers.toLocaleString()}</strong>,
+              Online Users: <strong class="text-bolder text-success">${data.totalUsersOnline.toLocaleString()}</strong>,
+              Unique Users: <strong class="text-bolder text-success">${data.totalUsers.toLocaleString()}</strong>
+            </div>
+            <div class="item stats-pings">
+              Pings: <strong class="text-bolder text-danger">${data.totalPings.toLocaleString()}</strong>
+            </div>
+          </div>
+        `);
       }
+    },
+    error: function() {
+      $(".stats").html(`<p class="text-danger">Error fetching statistics</p>`);
     }
   });
 }
 
 function getGlobalGraph() {
+  $(".chart-controls").html(`<span class="small text-muted">Loading server controls...</span>`);
+  $(".chart-empty-message").removeClass("d-none").text("Loading chart...");
+  $("#myChart").hide();
   $.ajax({
     url:"api/getGlobalHistory",
     method: "GET",
@@ -363,10 +550,22 @@ function getGlobalGraph() {
         datasetMap: datasetMap
       };
 
+      serverList.forEach((server) => {
+        const values = Array.isArray(server.cnt) ? server.cnt.map((value) => Number(value) || 0) : [];
+        const average = calculateAverage(values);
+        const row = $(`tr.item-${server.id}`);
+        row.attr("data-average", average);
+      });
+
       initChartToggles(serverList);
+      syncOnlineColumnWithChartMode();
       resetSortState();
       applyTableColors(serverList);
       rebuildChart();
+    },
+    error: function() {
+      $(".chart-empty-message").removeClass("d-none").text("Error fetching server graph");
+      $("#myChart").hide();
     }
   });
 }
@@ -382,6 +581,13 @@ function getServerGraph() {
       messageEl.removeClass("d-none").text("Invalid server ID.");
     }
     return;
+  }
+
+  if (chartEl.length) {
+    chartEl.hide();
+  }
+  if (messageEl.length) {
+    messageEl.removeClass("d-none").text("Loading history...");
   }
 
   $.ajax({
@@ -404,7 +610,8 @@ function getServerGraph() {
 
       const labels = data.timestamps.map(element => moment.unix(element).format('MM/DD/YYYY (hh:mm:ss a)'));
       const playerHistory = data.cnt.map(value => Number(value) || 0);
-      const averageHistory = smoothValues(playerHistory, SERVER_MOVING_AVERAGE_WINDOW);
+      const averageHistory = getAverageSeries(playerHistory);
+      const averageValue = calculateAverage(playerHistory);
 
       serverHistoryData = {
         labels,
@@ -421,17 +628,17 @@ function getServerGraph() {
         backgroundColor: color + "22",
       },
       averageDataset: {
-        label: "Average",
+        label: `Average (${formatAverage(averageValue)})`,
           lineTension: 0,
           pointRadius: 0,
           pointHitRadius: 10,
           data: averageHistory,
           borderWidth: 2,
-          fill: false,
-          borderDash: [6, 6],
-          pointBackgroundColor: AVERAGE_LINE_COLOR,
-          borderColor: AVERAGE_LINE_COLOR,
-          backgroundColor: AVERAGE_LINE_COLOR + "22",
+          fill: true,
+          pointBackgroundColor: color,
+          pointBorderColor: color,
+          borderColor: color,
+          backgroundColor: color + "22",
         }
       };
 
@@ -502,20 +709,6 @@ function renderServerHistoryChart() {
   });
 }
 
-function smoothValues(values, windowSize = SMOOTHING_WINDOW) {
-  if (!Array.isArray(values) || !values.length) {
-    return [];
-  }
-  const result = [];
-  for (let i = 0; i < values.length; i++) {
-    const start = Math.max(0, i - windowSize + 1);
-    const windowSlice = values.slice(start, i + 1);
-    const sum = windowSlice.reduce((total, val) => total + val, 0);
-    result.push(sum / windowSlice.length);
-  }
-  return result;
-}
-
 function setServerChartMode(mode) {
   if (!mode || serverChartMode === mode) {
     return;
@@ -523,6 +716,7 @@ function setServerChartMode(mode) {
   serverChartMode = mode;
   $(".server-chart-mode").removeClass("active");
   $(`.server-chart-mode[data-mode="${mode}"]`).addClass("active");
+  updateServerHistoryTitle();
   renderServerHistoryChart();
 }
 
@@ -552,6 +746,9 @@ function getPlayerJoins(bucketParam) {
 
   if (messageEl.length) {
     messageEl.removeClass("d-none").text(`Loading ${label} join data...`);
+  }
+  if (chartEl.length) {
+    chartEl.hide();
   }
 
   $.ajax({
@@ -658,28 +855,13 @@ $("#toggle").click(function () {
   }
 });
 
-$('.copybtn').tooltip({
-  trigger: 'click',
-  placement: 'bottom'
-});
-
-function setTooltip(btn, message) {
-  $(btn).tooltip('hide')
-    .attr('data-original-title', message)
-    .tooltip('show');
-}
-
-function hideTooltip(btn) {
-  setTimeout(function () {
-    $(btn).tooltip('hide');
-  }, 1000);
-}
-
 var clipboard = new ClipboardJS('.copybtn');
 
 clipboard.on('success', function (e) {
-  setTooltip(e.trigger, 'Copied to Clipboard');
-  hideTooltip(e.trigger);
+  showCopyTooltip(e.trigger, "Copied to Clipboard");
+  if (e && e.clearSelection) {
+    e.clearSelection();
+  }
 });
 
 $("#searchForm").on("submit", function(event){
@@ -691,22 +873,23 @@ $("#searchForm").on("submit", function(event){
     method: "GET",
     success: function(data){
       if(!data.success) {
-        Swal.fire({
-          title: "Uh oh!",
-          icon: "error",
-          text: "This user was not found in any servers.",
-          allowOutsideClick: false,
-          allowEscapeKey: false
-        })
+        showToast("This user was not found in any servers.", {
+          variant: "dark",
+          bodyClass: "text-danger"
+        });
       }
       else {
         window.location = `../user/${data.player}`;
       }
+    },
+    error: function() {
+      showToast("Unable to search right now. Please try again.");
     }
   });
 });
 
 function getPlayers() {
+  $(".player-list").html(`<p class="text-muted text-bold mb-0">Loading players...</p>`);
   $.ajax({
     url:"../api/getPlayersOnline",
     data: {id: $("#id").val()},
@@ -722,6 +905,9 @@ function getPlayers() {
         });
         $(".player-list").html(d.join(", "));
       }
+    },
+    error: function() {
+      $(".player-list").html(`<p class="text-danger text-bold mb-0">Error loading players.</p>`);
     }
   });
 }
@@ -763,6 +949,18 @@ function checkWebGLSupport() {
   }
 }
 
+function setChartMode(mode) {
+  if (!mode || chartMode === mode) {
+    return;
+  }
+  chartMode = mode;
+  $(".chart-mode-btn").removeClass("active");
+  $(`.chart-mode-btn[data-mode="${mode}"]`).addClass("active");
+  updateGlobalChartTitle();
+  syncOnlineColumnWithChartMode();
+  rebuildChart();
+}
+
 function initChartModeButtons() {
   const buttons = $(".chart-mode-btn");
   if (!buttons.length) {
@@ -770,15 +968,13 @@ function initChartModeButtons() {
   }
   buttons.on("click", function () {
     const mode = $(this).data("mode");
-    if (!mode) {
-      return;
-    }
-    chartMode = mode;
-    buttons.removeClass("active");
-    $(this).addClass("active");
-    rebuildChart();
+    setChartMode(mode);
   });
 }
 
+attachSortHandlers();
+initTooltips();
+updateGlobalChartTitle();
+updateServerHistoryTitle();
 initChartModeButtons();
 initServerChartModeSwitch();
